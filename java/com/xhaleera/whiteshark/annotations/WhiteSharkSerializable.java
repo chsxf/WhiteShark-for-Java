@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
 /**
  * Annotation identifying serializable class members
  * 
- * @author Christophe SAUVEUR
+ * @author Christophe SAUVEUR <christophe@xhaleera.com>
  * @since 1.0
  * @version 1.0
  */

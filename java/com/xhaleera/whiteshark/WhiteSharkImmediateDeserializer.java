@@ -20,7 +20,7 @@ import com.xhaleera.whiteshark.exceptions.WhiteSharkUnsupportedVersionException;
  * This class is used to deserialize completely buffered WhiteShark streams.
  * To deserialize incomplete (unbuffered) streams, use WhiteSharkProgressiveDeserializer.
  * 
- * @author Christophe SAUVEUR
+ * @author Christophe SAUVEUR <christophe@xhaleera.com>
  * @since 1.0
  * @version 1.0
  */

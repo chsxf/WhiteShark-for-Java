@@ -3,7 +3,7 @@ package com.xhaleera.whiteshark.exceptions;
 /**
  * Exception thrown when the deserialized stream uses a format version the deserializer does not support
  * 
- * @author Christophe SAUVEUR
+ * @author Christophe SAUVEUR <christophe@xhaleera.com>
  * @since 1.0
  * @version 1.0
  */
