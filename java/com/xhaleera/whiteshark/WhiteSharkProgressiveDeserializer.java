@@ -124,6 +124,8 @@ public final class WhiteSharkProgressiveDeserializer {
 	
 	/** Class dictionary */
 	private Vector<Class<?>> classDictionary;
+	/** Property dictionary */
+	private Vector<String> propertyDictionary;
 	
 	/**
 	 * Deserialization level container
@@ -171,6 +173,7 @@ public final class WhiteSharkProgressiveDeserializer {
 		levels = null;
 		
 		classDictionary = new Vector<>();
+		propertyDictionary = new Vector<>();
 	}
 	
 	/**
@@ -404,11 +407,23 @@ public final class WhiteSharkProgressiveDeserializer {
 			
 			// Property
 			else if (dataType == WhiteSharkDataType.PROPERTY.getMask()) {
-				int fieldNameLengthByteCount = ((mask & 0x10) != 0) ? 2 : 1;
-				if (baos.size() < offset + 1 + fieldNameLengthByteCount)
+				boolean propertyInDictionary = ((mask & 0x40) != 0);
+				int size, fieldNameLengthByteCount = 0;
+				if (propertyInDictionary)
+					size = 3;
+				else {
+					fieldNameLengthByteCount = ((mask & 0x10) != 0) ? 2 : 1;
+					size = 1 + fieldNameLengthByteCount;
+				}
+				if (baos.size() < offset + size)
 					return false;
-				int length = (fieldNameLengthByteCount == 2) ? buf.getShort(offset + 1) : buf.get(offset + 1);
-				int newOffset = offset + 1 + fieldNameLengthByteCount + length;
+				
+				int length;
+				if (propertyInDictionary)
+					length = 0;
+				else
+					length = (fieldNameLengthByteCount == 2) ? buf.getShort(offset + 1) : buf.get(offset + 1);
+				int newOffset = offset + size + length;
 				return (baos.size() >= newOffset) && canDeserializationContinue(newOffset);
 			}
 			
@@ -419,7 +434,10 @@ public final class WhiteSharkProgressiveDeserializer {
 					lengthByteCount = 4;
 				if (baos.size() < offset + 3)
 					return false;
-				int classNameLength = 2 + buf.getShort(offset + 1);
+				
+				int classNameLength = 2;
+				if ((mask & 0x40) == 0)
+					classNameLength += buf.getShort(offset + 1);
 				return (baos.size() >= offset + 1 + classNameLength + lengthByteCount);
 			}
 			
@@ -737,18 +755,30 @@ public final class WhiteSharkProgressiveDeserializer {
 	private DeserializationResult deserializeProperty(byte mask) throws UnsupportedEncodingException, ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		ByteBuffer buf = WhiteSharkUtils.wrapWithByteBuffer(baos.toByteArray());
 		
-		int fieldNameByteLength = ((mask & 0x10) != 0) ? 2 : 1;
-		int fieldNameLength;
-		if (fieldNameByteLength == 1)
-			fieldNameLength = buf.get();
-		else
-			fieldNameLength = buf.getShort();
+		boolean propertyInDictionary = ((mask & 0x40) != 0);
+		String fieldName;
 		
-		removeFirstBytesFromStream(fieldNameByteLength + fieldNameLength);
-		
-		byte[] b = new byte[fieldNameLength];
-		buf.get(b);
-		String fieldName = new String(b, "US-ASCII");
+		if (propertyInDictionary) {
+			int propertyDictionaryIndex = buf.getShort();
+			fieldName = propertyDictionary.elementAt(propertyDictionaryIndex);
+			removeFirstBytesFromStream(2);
+		}
+		else {
+			int fieldNameByteLength = ((mask & 0x10) != 0) ? 2 : 1;
+			int fieldNameLength;
+			if (fieldNameByteLength == 1)
+				fieldNameLength = buf.get();
+			else
+				fieldNameLength = buf.getShort();
+			
+			removeFirstBytesFromStream(fieldNameByteLength + fieldNameLength);
+			
+			byte[] b = new byte[fieldNameLength];
+			buf.get(b);
+			fieldName = new String(b, "US-ASCII");
+			
+			propertyDictionary.add(fieldName);
+		}
 		
 		DeserializationResult propResult = deserializeNext();
 		return new DeserializationResult(propResult.result, fieldName);

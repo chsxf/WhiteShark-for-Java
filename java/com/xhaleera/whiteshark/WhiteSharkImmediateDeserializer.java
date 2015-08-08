@@ -28,6 +28,7 @@ import com.xhaleera.whiteshark.exceptions.WhiteSharkUnsupportedVersionException;
 public class WhiteSharkImmediateDeserializer {
 
 	private static Vector<Class<?>> classDictionary = new Vector<>();
+	private static Vector<String> propertyDictionary = new Vector<>();
 	
 	/**
 	 * Deserializes a completely buffered WhiteShark stream
@@ -48,6 +49,7 @@ public class WhiteSharkImmediateDeserializer {
 	 */
 	public static Object deserialize(String identifier, InputStream stream) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkException, NoSuchFieldException, IOException {
 		classDictionary.clear();
+		propertyDictionary.clear();
 		
 		identifier = WhiteSharkUtils.sanitizeIdentifier(identifier);
 		
@@ -420,26 +422,39 @@ public class WhiteSharkImmediateDeserializer {
 	private static void deserializeProperty(InputStream stream, Object parentObj, boolean parentObjectAsGenerics, short options) throws IOException, WhiteSharkNotAPropertyException, IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException, ClassNotFoundException, NoSuchMethodException, InstantiationException, InvocationTargetException {
 		byte mask = (byte) stream.read();
 		byte dataType = (byte) (mask & 0xf);
+		byte[] b;
+		ByteBuffer buf;
 		
 		if (dataType != WhiteSharkDataType.PROPERTY.getMask())
 			throw new WhiteSharkNotAPropertyException("Not a property");
 		
-		int fieldNameByteLength = ((mask & 0x10) != 0) ? 2 : 1;
-		int fieldNameLength;
-		byte[] b;
-		ByteBuffer buf;
-		if (fieldNameByteLength == 1)
-			fieldNameLength = stream.read();
-		else {
+		boolean propertyInDictionary = ((mask & 0x40) != 0);
+		String fieldName;
+		if (propertyInDictionary) {
 			b = new byte[2];
 			stream.read(b);
 			buf = WhiteSharkUtils.wrapWithByteBuffer(b);
-			fieldNameLength = buf.getShort();
+			int propertyDictionaryIndex = buf.getShort();
+			fieldName = propertyDictionary.elementAt(propertyDictionaryIndex);
 		}
-		
-		b = new byte[fieldNameLength];
-		stream.read(b);
-		String fieldName = new String(b, "US-ASCII");
+		else {
+			int fieldNameByteLength = ((mask & 0x10) != 0) ? 2 : 1;
+			int fieldNameLength;
+			if (fieldNameByteLength == 1)
+				fieldNameLength = stream.read();
+			else {
+				b = new byte[2];
+				stream.read(b);
+				buf = WhiteSharkUtils.wrapWithByteBuffer(b);
+				fieldNameLength = buf.getShort();
+			}
+			
+			b = new byte[fieldNameLength];
+			stream.read(b);
+			fieldName = new String(b, "US-ASCII");
+			
+			propertyDictionary.add(fieldName);
+		}
 		
 		if (parentObjectAsGenerics) {
 			WhiteSharkGenericObject obj = (WhiteSharkGenericObject) parentObj;

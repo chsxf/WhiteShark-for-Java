@@ -404,21 +404,40 @@ public class WhiteSharkSerializer {
 	 * @throws IllegalAccessException
 	 */
 	private static void serializeProperty(OutputStream stream, Object obj, Field f, short options) throws IOException, IllegalAccessException {
-		byte mask = WhiteSharkDataType.PROPERTY.getMask();		
-		byte[] fieldNameBytes = f.getName().getBytes("US-ASCII");
+		byte mask = WhiteSharkDataType.PROPERTY.getMask();
+		byte[] fieldNameBytes = null;
+		int bufferByteCount;
+		boolean longFieldName = false;
 		
-		int fieldNameByteLength = fieldNameBytes.length;
-		boolean longFieldName = (fieldNameByteLength >= Byte.MAX_VALUE);
-		if (longFieldName)
-			mask |= 0x10;
+		boolean propertyInDictionary = propertyDictionary.contains(f.getName());
+		int propertyDictionaryIndex = -1;
+		if (propertyInDictionary) {
+			propertyDictionaryIndex = propertyDictionary.indexOf(f.getName());
+			bufferByteCount = 3;
+			mask |= 0x40;
+		}
+		else {
+			fieldNameBytes = f.getName().getBytes("US-ASCII");
+			propertyDictionary.add(f.getName());
+			
+			int fieldNameByteLength = fieldNameBytes.length;
+			longFieldName = (fieldNameByteLength >= Byte.MAX_VALUE);
+			if (longFieldName)
+				mask |= 0x10;
+			bufferByteCount = 1 + (longFieldName ? 2 : 1) + fieldNameBytes.length;
+		}
 		
-		ByteBuffer buf = WhiteSharkUtils.allocateByteBuffer(1 + (longFieldName ? 2 : 1) + fieldNameBytes.length);
+		ByteBuffer buf = WhiteSharkUtils.allocateByteBuffer(bufferByteCount);
 		buf.put(mask);
-		if (!longFieldName)
-			buf.put((byte) fieldNameBytes.length);
-		else
-			buf.putShort((short) fieldNameBytes.length);
-		buf.put(fieldNameBytes);
+		if (propertyInDictionary)
+			buf.putShort((short) propertyDictionaryIndex);
+		else {
+			if (!longFieldName)
+				buf.put((byte) fieldNameBytes.length);
+			else
+				buf.putShort((short) fieldNameBytes.length);
+			buf.put(fieldNameBytes);
+		}
 		stream.write(buf.array());
 		
 		serialize(stream, f.get(obj), options);
