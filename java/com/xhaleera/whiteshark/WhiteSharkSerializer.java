@@ -238,8 +238,7 @@ public class WhiteSharkSerializer {
 			lengthByteCount = 4;
 		byte lengthByteCountMask = (byte) ((lengthByteCount == 4) ? 3 : lengthByteCount);
 		
-		Class<?> arrayClass = array.getClass();
-		Class<?> componentClass = arrayClass.getComponentType();
+		Class<?> componentClass = array.getClass().getComponentType();
 		if (!componentClass.isPrimitive() && !componentClass.equals(String.class) && !componentClass.equals(Boolean.class)) {
 			if (WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS)) {
 				if (componentClass.isArray())
@@ -252,13 +251,30 @@ public class WhiteSharkSerializer {
 					componentClass = Object.class;
 			}
 		}
-		byte[] classNameBytes = componentClass.getName().getBytes("US-ASCII");
+		
+		byte[] classNameBytes = null;
+		int classNameLength = 2;
+		boolean classInDictionary = classDictionary.contains(componentClass);
+		int classDictionaryIndex = -1;
+		if (!classInDictionary) {
+			classDictionary.add(componentClass);
+			classNameBytes = componentClass.getName().getBytes("US-ASCII");
+			classNameLength += classNameBytes.length;
+		}
+		else
+			classDictionaryIndex = classDictionary.indexOf(componentClass);
 		
 		mask |= ((byte) lengthByteCountMask) << 4;
-		ByteBuffer buf = WhiteSharkUtils.allocateByteBuffer(1 + 2 + classNameBytes.length + lengthByteCount);
+		if (classInDictionary)
+			mask |= 0x40;
+		ByteBuffer buf = WhiteSharkUtils.allocateByteBuffer(1 + classNameLength + lengthByteCount);
 		buf.put(mask);
-		buf.putShort((short) classNameBytes.length);
-		buf.put(classNameBytes);
+		if (classInDictionary)
+			buf.putShort((short) classDictionaryIndex);
+		else {
+			buf.putShort((short) classNameBytes.length);
+			buf.put(classNameBytes);
+		}
 		switch (lengthByteCount) {
 		case 0:
 			break;
@@ -292,15 +308,21 @@ public class WhiteSharkSerializer {
 	 */
 	private static void serializeObject(OutputStream stream, Object obj, short options) throws IOException, IllegalAccessException {
 		Class<?> c = obj.getClass();
+		byte[] classCanonicalNameBytes = null;
+		
 		boolean serializesAsGenerics = WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS) || (c.getAnnotation(WhiteSharkAsGenerics.class) != null);
+		
 		boolean classInDictionary = classDictionary.contains(c);
 		int classDictionaryIndex = -1;
-		if (!classInDictionary)
-			classDictionary.add(c);
-		else
-			classDictionaryIndex = classDictionary.indexOf(c);
 		
-		byte[] classCanonicalNameBytes = serializesAsGenerics ? null : c.getCanonicalName().getBytes("US-ASCII"); 
+		if (!serializesAsGenerics) {
+			if (!classInDictionary) {
+				classDictionary.add(c);
+				classCanonicalNameBytes = c.getCanonicalName().getBytes("US-ASCII");
+			}
+			else
+				classDictionaryIndex = classDictionary.indexOf(c);
+		}
 		
 		// Locating fields
 		Field[] fields = c.getFields();

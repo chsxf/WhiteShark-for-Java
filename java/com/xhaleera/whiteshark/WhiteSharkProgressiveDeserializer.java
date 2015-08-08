@@ -609,9 +609,18 @@ public final class WhiteSharkProgressiveDeserializer {
 	private DeserializationResult deserializeArray(boolean isRoot, byte mask) throws ClassNotFoundException, UnsupportedEncodingException {
 		ByteBuffer buf = WhiteSharkUtils.wrapWithByteBuffer(baos.toByteArray());
 		
-		int classNameLength = buf.getShort();
-		byte[] b = new byte[classNameLength];
-		buf.get(b);
+		boolean classInDictionary = ((mask & 0x40) != 0);
+		int classDictionaryIndex = -1;
+		
+		int classNameLength = 0;
+		byte[] b = null;
+		if (!classInDictionary) {
+			classNameLength = buf.getShort();
+			b = new byte[classNameLength];
+			buf.get(b);
+		}
+		else
+			classDictionaryIndex = buf.getShort();
 		
 		int lengthByteCount = ((mask & 0x30) >> 4);
 		if (lengthByteCount == 3)
@@ -626,8 +635,14 @@ public final class WhiteSharkProgressiveDeserializer {
 		
 		removeFirstBytesFromStream(2 + classNameLength + lengthByteCount);
 		
-		String className = new String(b, "US-ASCII");
-		Class<?> primitiveClass = Class.forName(className);
+		Class<?> primitiveClass;
+		if (classInDictionary)
+			primitiveClass = classDictionary.elementAt(classDictionaryIndex);
+		else {
+			String className = new String(b, "US-ASCII");
+			primitiveClass = Class.forName(className);
+			classDictionary.add(primitiveClass);
+		}
 		
 		Object arr = Array.newInstance(primitiveClass, count);
 		if (isRoot && count == 0)

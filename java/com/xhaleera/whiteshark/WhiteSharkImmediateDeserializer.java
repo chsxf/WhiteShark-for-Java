@@ -269,15 +269,22 @@ public class WhiteSharkImmediateDeserializer {
 	 * @throws NoSuchFieldException
 	 */
 	private static Object deserializeArray(InputStream stream, byte mask, short options) throws IOException, ClassNotFoundException, ArrayIndexOutOfBoundsException, IllegalArgumentException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, InvocationTargetException, WhiteSharkNotAPropertyException, NoSuchFieldException {
-		byte[] b;
+		byte[] b, classNameBytes = null;
 		ByteBuffer buf;
+		
+		boolean classInDictionary = ((mask & 0x40) != 0);
+		int classDictionaryIndex = -1;
 		
 		b = new byte[2];
 		stream.read(b);
 		buf = WhiteSharkUtils.wrapWithByteBuffer(b);
-		int classNameLength = buf.getShort();
-		b = new byte[classNameLength];
-		stream.read(b);
+		if (classInDictionary)
+			classDictionaryIndex = buf.getShort();
+		else {
+			int classNameLength = buf.getShort();
+			classNameBytes = new byte[classNameLength];
+			stream.read(classNameBytes);
+		}
 		
 		int lengthByteCount = ((mask & 0x30) >> 4);
 		if (lengthByteCount == 3)
@@ -298,8 +305,14 @@ public class WhiteSharkImmediateDeserializer {
 			count = buf.getInt();
 		}
 		
-		String className = new String(b, "US-ASCII");
-		Class<?> primitiveClass = Class.forName(className);
+		Class<?> primitiveClass;
+		if (classInDictionary)
+			primitiveClass = classDictionary.elementAt(classDictionaryIndex);
+		else {
+			String className = new String(classNameBytes, "US-ASCII");
+			primitiveClass = Class.forName(className);
+			classDictionary.add(primitiveClass);
+		}
 		Object arr = Array.newInstance(primitiveClass, count);
 		for (int i = 0; i < count; i++)
 			Array.set(arr, i, deserialize(stream, options));
