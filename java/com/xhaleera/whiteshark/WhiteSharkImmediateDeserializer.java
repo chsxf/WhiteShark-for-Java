@@ -424,7 +424,7 @@ public class WhiteSharkImmediateDeserializer {
 		if (dataType != WhiteSharkDataType.PROPERTY.getMask())
 			throw new WhiteSharkNotAPropertyException("Not a property");
 		
-		int fieldNameByteLength = ((mask & 0xf0) >> 4);
+		int fieldNameByteLength = ((mask & 0x10) != 0) ? 2 : 1;
 		int fieldNameLength;
 		byte[] b;
 		ByteBuffer buf;

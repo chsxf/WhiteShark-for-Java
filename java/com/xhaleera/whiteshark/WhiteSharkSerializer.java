@@ -20,6 +20,7 @@ import com.xhaleera.whiteshark.annotations.WhiteSharkSerializable;
 public class WhiteSharkSerializer {
 
 	private static Vector<Class<?>> classDictionary = new Vector<>();
+	private static Vector<String> propertyDictionary = new Vector<>();
 	
 	/**
 	 * Serializes an object using WhiteShark serialization format
@@ -46,6 +47,7 @@ public class WhiteSharkSerializer {
 	 */
 	public static void serialize(String identifier, OutputStream stream, Object obj, short options) throws IOException, IllegalAccessException {
 		classDictionary.clear();
+		propertyDictionary.clear();
 		
 		identifier = WhiteSharkUtils.sanitizeIdentifier(identifier);
 		
@@ -406,12 +408,13 @@ public class WhiteSharkSerializer {
 		byte[] fieldNameBytes = f.getName().getBytes("US-ASCII");
 		
 		int fieldNameByteLength = fieldNameBytes.length;
-		int fieldNameLengthByteCount = (fieldNameByteLength < Byte.MAX_VALUE) ? 1 : 2;
-		mask |= fieldNameLengthByteCount << 4;
+		boolean longFieldName = (fieldNameByteLength >= Byte.MAX_VALUE);
+		if (longFieldName)
+			mask |= 0x10;
 		
-		ByteBuffer buf = WhiteSharkUtils.allocateByteBuffer(1 + fieldNameLengthByteCount + fieldNameBytes.length);
+		ByteBuffer buf = WhiteSharkUtils.allocateByteBuffer(1 + (longFieldName ? 2 : 1) + fieldNameBytes.length);
 		buf.put(mask);
-		if (fieldNameLengthByteCount == 1)
+		if (!longFieldName)
 			buf.put((byte) fieldNameBytes.length);
 		else
 			buf.putShort((short) fieldNameBytes.length);
