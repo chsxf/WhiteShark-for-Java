@@ -1,7 +1,7 @@
 # WhiteShark
 WhiteShark is a binary serialization format with a very little overhead and a much smaller footprint than JSON or Java native serialization format.
 
-# Supported languages
+# Supported Languages
 As a serialization format, WhiteShark can be used with any programming language.
 However, at this time, this repository only provides a Java library.
 
@@ -24,7 +24,7 @@ class MySerializableClass {
 }
 ```
 
-### Calling the default serializer
+### Calling the Default Serializer
 A WhiteShark stream of serailized data starts with a header. This header contains a custom 4-byte long alphanumeric identifier that indicates the potential stream usage. It allows you during deserialization to ensure the data you're receiving is the right one, and acting accordingly if not.
 
 To serialize an object with default options, just call `WhiteSharkSerializer.serialize()` with the correct arguments.
@@ -37,7 +37,7 @@ WhiteSharkSerializer.serialize(streamId, fileStream, toSerialize);
 fileStream.close();
 ```
 
-### Calling the serializer with options
+### Calling the Serializer with Options
 An alternative version to `WhiteSharkSerializer.serialize()` allows you to pass some options to the serializer.
 
 At this time, only one option is supported:
@@ -89,13 +89,34 @@ if (result != null && !result.complete) {
 inStream.close();
 ```
 
-# Comparison with other serialization formats
-Soon
+# Comparison with Other Serialization Formats
+As a Java library, it is interesting to compare it against the Java native serialization API. It is interesting to compare also against the well-known and widely used JSON serialization format.
+
+## Data Set
+As an example, we serialize a list of fictitious employees.
+
+|First Name|Last Name|Age|Male |
+-------------------------------
+|Charlotte |HUMBERT  |30 |False|
+|Eric      |BALLET   |38 |True |
+|Charles   |SAUVEUR  |35 |True |
+|Carli     |BRUNA    |26 |False|
+|William   |MARTIN   |31 |True |
+|Marine    |DAVID    |35 |False|
 
 ## Output Size
-Soon
+You can find in the following list the amount of data required to store the serialized stream in each format.
+
+|Format     |Size     |Diff to WhiteShark|
+------------------------------------------
+|WhiteShark |302 bytes|-                 |
+|Java native|351 bytes|+16.22%           |
+|JSON       |382 bytes|+26.49%           |			
 
 ## Performance
+Soon
+
+# Format specifications
 Soon
 
 # License
