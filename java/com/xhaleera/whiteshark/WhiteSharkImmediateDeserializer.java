@@ -279,7 +279,9 @@ public class WhiteSharkImmediateDeserializer {
 		b = new byte[classNameLength];
 		stream.read(b);
 		
-		int lengthByteCount = ((mask & 0xf0) >> 4);
+		int lengthByteCount = ((mask & 0x30) >> 4);
+		if (lengthByteCount == 3)
+			lengthByteCount = 4;
 		int count;
 		if (lengthByteCount == 1)
 			count = stream.read();

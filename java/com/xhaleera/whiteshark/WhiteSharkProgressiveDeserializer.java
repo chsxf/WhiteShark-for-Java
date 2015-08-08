@@ -414,7 +414,9 @@ public final class WhiteSharkProgressiveDeserializer {
 			
 			// Array
 			else if (dataType == WhiteSharkDataType.ARRAY.getMask()) {
-				int lengthByteCount = (mask & 0x70) >> 4;
+				int lengthByteCount = (mask & 0x30) >> 4;
+				if (lengthByteCount == 3)
+					lengthByteCount = 4;
 				if (baos.size() < offset + 3)
 					return false;
 				int classNameLength = 2 + buf.getShort(offset + 1);
@@ -611,7 +613,9 @@ public final class WhiteSharkProgressiveDeserializer {
 		byte[] b = new byte[classNameLength];
 		buf.get(b);
 		
-		int lengthByteCount = ((mask & 0xf0) >> 4);
+		int lengthByteCount = ((mask & 0x30) >> 4);
+		if (lengthByteCount == 3)
+			lengthByteCount = 4;
 		int count;
 		if (lengthByteCount == 1)
 			count = buf.get();

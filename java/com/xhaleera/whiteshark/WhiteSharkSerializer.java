@@ -236,6 +236,7 @@ public class WhiteSharkSerializer {
 			lengthByteCount = 2;
 		else
 			lengthByteCount = 4;
+		byte lengthByteCountMask = (byte) ((lengthByteCount == 4) ? 3 : lengthByteCount);
 		
 		Class<?> arrayClass = array.getClass();
 		Class<?> componentClass = arrayClass.getComponentType();
@@ -253,7 +254,7 @@ public class WhiteSharkSerializer {
 		}
 		byte[] classNameBytes = componentClass.getName().getBytes("US-ASCII");
 		
-		mask |= ((byte) lengthByteCount) << 4;
+		mask |= ((byte) lengthByteCountMask) << 4;
 		ByteBuffer buf = WhiteSharkUtils.allocateByteBuffer(1 + 2 + classNameBytes.length + lengthByteCount);
 		buf.put(mask);
 		buf.putShort((short) classNameBytes.length);
