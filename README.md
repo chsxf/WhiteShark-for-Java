@@ -95,23 +95,23 @@ As a Java library, it is interesting to compare it against the Java native seria
 ## Data Set
 As an example, we serialize a list of fictitious employees.
 
-|First Name|Last Name|Age|Male |
--------------------------------
-|Charlotte |HUMBERT  |30 |False|
-|Eric      |BALLET   |38 |True |
-|Charles   |SAUVEUR  |35 |True |
-|Carli     |BRUNA    |26 |False|
-|William   |MARTIN   |31 |True |
-|Marine    |DAVID    |35 |False|
+| First Name | Last Name | Age | Male  |
+|------------|-----------|-----|-------|
+| Charlotte  | HUMBERT   | 30  | False |
+| Eric       | BALLET    | 38  | True  |
+| Charles    | SAUVEUR   | 35  | True  |
+| Carli      | BRUNA     | 26  | False |
+| William    | MARTIN    | 31  | True  |
+| Marine     | DAVID     | 35  | False |
 
 ## Output Size
 You can find in the following list the amount of data required to store the serialized stream in each format.
 
-|Format     |Size     |Diff to WhiteShark|
-------------------------------------------
-|WhiteShark |302 bytes|-                 |
-|Java native|351 bytes|+16.22%           |
-|JSON       |382 bytes|+26.49%           |			
+| Format      | Size      | Diff to WhiteShark |
+|-------------|-----------|--------------------|
+| WhiteShark  | 302 bytes | -                  |
+| Java native | 351 bytes | +16.22%            |
+| JSON        | 382 bytes | +26.49%            |			
 
 ## Performance
 Soon
