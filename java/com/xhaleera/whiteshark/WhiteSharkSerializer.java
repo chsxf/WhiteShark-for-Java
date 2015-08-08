@@ -19,6 +19,8 @@ import com.xhaleera.whiteshark.annotations.WhiteSharkSerializable;
  */
 public class WhiteSharkSerializer {
 
+	private static Vector<Class<?>> classDictionary = new Vector<>();
+	
 	/**
 	 * Serializes an object using WhiteShark serialization format
 	 * 
@@ -43,6 +45,8 @@ public class WhiteSharkSerializer {
 	 * @throws IllegalAccessException
 	 */
 	public static void serialize(String identifier, OutputStream stream, Object obj, short options) throws IOException, IllegalAccessException {
+		classDictionary.clear();
+		
 		identifier = WhiteSharkUtils.sanitizeIdentifier(identifier);
 		
 		ByteBuffer buffer = WhiteSharkUtils.allocateByteBuffer(12);
@@ -288,6 +292,12 @@ public class WhiteSharkSerializer {
 	private static void serializeObject(OutputStream stream, Object obj, short options) throws IOException, IllegalAccessException {
 		Class<?> c = obj.getClass();
 		boolean serializesAsGenerics = WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS) || (c.getAnnotation(WhiteSharkAsGenerics.class) != null);
+		boolean classInDictionary = classDictionary.contains(c);
+		int classDictionaryIndex = -1;
+		if (!classInDictionary)
+			classDictionary.add(c);
+		else
+			classDictionaryIndex = classDictionary.indexOf(c);
 		
 		byte[] classCanonicalNameBytes = serializesAsGenerics ? null : c.getCanonicalName().getBytes("US-ASCII"); 
 		
@@ -315,15 +325,24 @@ public class WhiteSharkSerializer {
 		mask |= ((byte) fieldCountByteCount) << 4;
 		if (serializesAsGenerics)
 			mask |= 0x80;
+		else if (classInDictionary)
+			mask |= 0x40;
 		
 		int byteBufferLength = 1 + fieldCountByteCount;
-		if (!serializesAsGenerics)
-			byteBufferLength += 2 + classCanonicalNameBytes.length;
+		if (!serializesAsGenerics) {
+			byteBufferLength += 2;
+			if (!classInDictionary)
+				byteBufferLength += classCanonicalNameBytes.length;
+		}
 		ByteBuffer buf = WhiteSharkUtils.allocateByteBuffer(byteBufferLength);
 		buf.put(mask);
 		if (!serializesAsGenerics) {
-			buf.putShort((short) classCanonicalNameBytes.length);
-			buf.put(classCanonicalNameBytes);
+			if (classInDictionary)
+				buf.putShort((short) classDictionaryIndex);
+			else {
+				buf.putShort((short) classCanonicalNameBytes.length);
+				buf.put(classCanonicalNameBytes);
+			}
 		}
 		switch (fieldCountByteCount) {
 		default:

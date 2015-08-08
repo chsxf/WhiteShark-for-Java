@@ -8,6 +8,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.util.Stack;
+import java.util.Vector;
 
 import com.xhaleera.whiteshark.exceptions.WhiteSharkException;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkMissingFormatIdentifierException;
@@ -121,6 +122,9 @@ public final class WhiteSharkProgressiveDeserializer {
 	/** Flag indicating if the stream header has been deserialized or not */
 	private boolean headerDeserialized;
 	
+	/** Class dictionary */
+	private Vector<Class<?>> classDictionary;
+	
 	/**
 	 * Deserialization level container
 	 * 
@@ -165,6 +169,8 @@ public final class WhiteSharkProgressiveDeserializer {
 		
 		headerDeserialized = false;
 		levels = null;
+		
+		classDictionary = new Vector<>();
 	}
 	
 	/**
@@ -406,14 +412,31 @@ public final class WhiteSharkProgressiveDeserializer {
 				return (baos.size() >= newOffset) && canDeserializationContinue(newOffset);
 			}
 			
-			// Array / Object
-			else {
-				boolean serializedAsGenerics = (dataType == WhiteSharkDataType.OBJECT.getMask()
-						&& (WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS) || ((mask & 0x80) != 0)));
+			// Array
+			else if (dataType == WhiteSharkDataType.ARRAY.getMask()) {
 				int lengthByteCount = (mask & 0x70) >> 4;
 				if (baos.size() < offset + 3)
 					return false;
-				int classNameLength = serializedAsGenerics ? 0 : 2 + buf.getShort(offset + 1);
+				int classNameLength = 2 + buf.getShort(offset + 1);
+				return (baos.size() >= offset + 1 + classNameLength + lengthByteCount);
+			}
+			
+			// Object
+			else {
+				boolean serializedAsGenerics = (dataType == WhiteSharkDataType.OBJECT.getMask()
+						&& (WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS) || ((mask & 0x80) != 0)));
+				boolean classInDictionary = ((mask & 0x40) != 0);
+				int lengthByteCount = (mask & 0x30) >> 4;
+				if (baos.size() < offset + 3)
+					return false;
+				int classNameLength;
+				if (serializedAsGenerics)
+					classNameLength = 0;
+				else {
+					classNameLength = 2;
+					if (!classInDictionary)
+						classNameLength += buf.getShort(offset + 1);
+				}
 				return (baos.size() >= offset + 1 + classNameLength + lengthByteCount);
 			}
 		}
@@ -606,7 +629,7 @@ public final class WhiteSharkProgressiveDeserializer {
 		if (isRoot && count == 0)
 			return new DeserializationResult(true, arr);
 		else
-			return new DeserializationResult(arr, false, count);
+			return new DeserializationResult(arr, WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS), count);
 	}
 	
 	/**
@@ -626,13 +649,19 @@ public final class WhiteSharkProgressiveDeserializer {
 	private DeserializationResult deserializeObject(boolean isRoot, byte mask) throws UnsupportedEncodingException, ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		ByteBuffer buf = WhiteSharkUtils.wrapWithByteBuffer(baos.toByteArray());
 		boolean serializedAsGenerics = WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS) || ((mask & 0x80) != 0);
+		boolean classInDictionary = ((mask & 0x40) != 0);
+		int classDictionaryIndex = -1;
 		
 		int classNameLength = 0;
 		byte[] classNameBytes = null;
 		if (!serializedAsGenerics) {
-			classNameLength = buf.getShort();
-			classNameBytes = new byte[classNameLength];
-			buf.get(classNameBytes);
+			if (!classInDictionary) {
+				classNameLength = buf.getShort();
+				classNameBytes = new byte[classNameLength];
+				buf.get(classNameBytes);
+			}
+			else
+				classDictionaryIndex = buf.getShort();
 		}
 		
 		int fieldCountByteCount = ((mask & 0x30) >> 4);
@@ -648,9 +677,17 @@ public final class WhiteSharkProgressiveDeserializer {
 			o = new WhiteSharkGenericObject(count);
 		}
 		else {
-			removeFirstBytesFromStream(2 + classNameLength + fieldCountByteCount);
-			String className = new String(classNameBytes, "US-ASCII");
-			Class<?> c = Class.forName(className);
+			Class<?> c;
+			if (!classInDictionary) {
+				removeFirstBytesFromStream(2 + classNameLength + fieldCountByteCount);
+				String className = new String(classNameBytes, "US-ASCII");
+				c = Class.forName(className);
+				classDictionary.add(c);
+			}
+			else {
+				removeFirstBytesFromStream(2 + fieldCountByteCount);
+				c = classDictionary.elementAt(classDictionaryIndex);
+			}
 			Constructor<?> constructor = c.getConstructor();
 			o = constructor.newInstance();
 		}

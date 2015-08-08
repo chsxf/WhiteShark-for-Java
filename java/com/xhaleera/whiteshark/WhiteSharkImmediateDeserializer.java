@@ -7,6 +7,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
+import java.util.Vector;
 
 import com.xhaleera.whiteshark.exceptions.WhiteSharkException;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkMismatchingIdentifierException;
@@ -26,6 +27,8 @@ import com.xhaleera.whiteshark.exceptions.WhiteSharkUnsupportedVersionException;
  */
 public class WhiteSharkImmediateDeserializer {
 
+	private static Vector<Class<?>> classDictionary = new Vector<>();
+	
 	/**
 	 * Deserializes a completely buffered WhiteShark stream
 	 * 
@@ -44,6 +47,8 @@ public class WhiteSharkImmediateDeserializer {
 	 * @throws IOException
 	 */
 	public static Object deserialize(String identifier, InputStream stream) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkException, NoSuchFieldException, IOException {
+		classDictionary.clear();
+		
 		identifier = WhiteSharkUtils.sanitizeIdentifier(identifier);
 		
 		byte[] b = new byte[12];
@@ -323,15 +328,21 @@ public class WhiteSharkImmediateDeserializer {
 		byte[] b, classNameBytes = null;
 		ByteBuffer buf;
 		boolean serializedAsGenerics = WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS) || ((mask & 0x80) != 0);
+		boolean classInDictionary = ((mask & 0x40) != 0);
+		int classDictionaryIndex = -1;
 		
 		if (!serializedAsGenerics) {
 			b = new byte[2];
 			stream.read(b);
 			buf = WhiteSharkUtils.wrapWithByteBuffer(b);
-			int classNameLength = buf.getShort();
-			b = new byte[classNameLength];
-			stream.read(b);
-			classNameBytes = b;
+			if (!classInDictionary) {
+				int classNameLength = buf.getShort();
+				b = new byte[classNameLength];
+				stream.read(b);
+				classNameBytes = b;
+			}
+			else
+				classDictionaryIndex = buf.getShort();
 		}
 		
 		int fieldCountByteCount = ((mask & 0x30) >> 4);
@@ -349,8 +360,14 @@ public class WhiteSharkImmediateDeserializer {
 		if (serializedAsGenerics)
 			o = new WhiteSharkGenericObject(count);
 		else {
-			String className = new String(classNameBytes, "US-ASCII");
-			Class<?> c = Class.forName(className);
+			Class<?> c;
+			if (!classInDictionary) {
+				String className = new String(classNameBytes, "US-ASCII");
+				c = Class.forName(className);
+				classDictionary.add(c);
+			}
+			else
+				c = classDictionary.elementAt(classDictionaryIndex);
 			Constructor<?> constructor = c.getConstructor();
 			o = constructor.newInstance();
 		}
