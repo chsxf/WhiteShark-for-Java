@@ -255,19 +255,25 @@ public final class WhiteSharkProgressiveDeserializer {
 								Array.set(level.object, level.currentIndex, _result.result);
 							level.currentIndex++;
 							
-							if (level.currentIndex >= level.maxIndex) {
-								if (levels.size() > 1)
-									levels.pop();
-								else
+							if (!_result.isComplex) {
+								while (levels.size() > 1) {
+									level = levels.peek();
+									if (level.currentIndex >= level.maxIndex)
+										levels.pop();
+									else
+										break;
+								}
+								
+								level = levels.peek();
+								if (levels.size() == 1 && level.currentIndex >= level.maxIndex)
 									return new DeserializationResult(true, level.object);
 							}
 						}
-						else {
-							if (_result.isComplex) {
-								if (levels == null)
-									levels = new Stack<DeserializationLevel>();
-								levels.add(new DeserializationLevel(_result.result, _result.objectAsGenerics, _result.subElementCount));
-							}
+						
+						if (_result.isComplex) {
+							if (levels == null)
+								levels = new Stack<DeserializationLevel>();
+							levels.add(new DeserializationLevel(_result.result, _result.objectAsGenerics, _result.subElementCount));
 						}
 					}
 				}
@@ -393,7 +399,7 @@ public final class WhiteSharkProgressiveDeserializer {
 			// Property
 			else if (dataType == WhiteSharkDataType.PROPERTY.getMask()) {
 				int fieldNameLengthByteCount = (mask & 0xf0) >> 4;
-				if (baos.size() < offset + fieldNameLengthByteCount)
+				if (baos.size() < offset + 1 + fieldNameLengthByteCount)
 					return false;
 				int length = (fieldNameLengthByteCount == 2) ? buf.getShort(offset + 1) : buf.get(offset + 1);
 				int newOffset = offset + 1 + fieldNameLengthByteCount + length;
@@ -594,11 +600,7 @@ public final class WhiteSharkProgressiveDeserializer {
 		removeFirstBytesFromStream(2 + classNameLength + lengthByteCount);
 		
 		String className = new String(b, "US-ASCII");
-		Class<?> c = Class.forName(className);
-		
-		String primitiveClassName = c.getCanonicalName();
-		primitiveClassName = primitiveClassName.substring(0, primitiveClassName.length() - 2);
-		Class<?> primitiveClass = WhiteSharkUtils.classForName(primitiveClassName);
+		Class<?> primitiveClass = Class.forName(className);
 		
 		Object arr = Array.newInstance(primitiveClass, count);
 		if (isRoot && count == 0)

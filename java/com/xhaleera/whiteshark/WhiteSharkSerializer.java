@@ -233,7 +233,21 @@ public class WhiteSharkSerializer {
 		else
 			lengthByteCount = 4;
 		
-		byte[] classNameBytes = array.getClass().getName().getBytes("US-ASCII");
+		Class<?> arrayClass = array.getClass();
+		Class<?> componentClass = arrayClass.getComponentType();
+		if (!componentClass.isPrimitive() && !componentClass.equals(String.class) && !componentClass.equals(Boolean.class)) {
+			if (WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS)) {
+				if (componentClass.isArray())
+					componentClass = Object[].class;
+				else
+					componentClass = Object.class;
+			}
+			else {
+				if (!componentClass.isArray() && componentClass.getAnnotation(WhiteSharkAsGenerics.class) != null)
+					componentClass = Object.class;
+			}
+		}
+		byte[] classNameBytes = componentClass.getName().getBytes("US-ASCII");
 		
 		mask |= ((byte) lengthByteCount) << 4;
 		ByteBuffer buf = WhiteSharkUtils.allocateByteBuffer(1 + 2 + classNameBytes.length + lengthByteCount);

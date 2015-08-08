@@ -292,12 +292,7 @@ public class WhiteSharkImmediateDeserializer {
 		}
 		
 		String className = new String(b, "US-ASCII");
-		Class<?> c = Class.forName(className);
-		
-		String primitiveClassName = c.getCanonicalName();
-		primitiveClassName = primitiveClassName.substring(0, primitiveClassName.length() - 2);
-		Class<?> primitiveClass = WhiteSharkUtils.classForName(primitiveClassName);
-		
+		Class<?> primitiveClass = Class.forName(className);
 		Object arr = Array.newInstance(primitiveClass, count);
 		for (int i = 0; i < count; i++)
 			Array.set(arr, i, deserialize(stream, options));
