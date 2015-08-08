@@ -20,11 +20,7 @@ public class WhiteSharkTest {
 
 	public static void main(String[] args) {
 		try {
-			Employee[] data = new Employee[]{
-				new Employee("Charlotte", "HUMBERT", 30, false),
-				new Employee("Eric", "BALLET", 38, true),
-				new Employee("Charles", "SAVEUR", 35, true)
-			};
+			Employee[] data = Employee.buildTestData();
 			dump(data);
 			
 			String streamId = "TEST";

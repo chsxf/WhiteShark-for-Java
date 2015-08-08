@@ -37,4 +37,15 @@ public class Employee implements Serializable {
 		return json;
 	}
 
+	public static Employee[] buildTestData() {
+		return new Employee[]{
+				new Employee("Charlotte", "HUMBERT", 30, false),
+				new Employee("Eric", "BALLET", 38, true),
+				new Employee("Charles", "SAVEUR", 35, true),
+				new Employee("Carli", "BRUNA", 26, false),
+				new Employee("William", "MARTIN", 31, true),
+				new Employee("Marine", "DAVID", 35, true)
+			};
+	}
+	
 }
