@@ -308,10 +308,8 @@ public class WhiteSharkSerializer {
 			fieldCountByteCount = 0;
 		else if (fieldCount < Byte.MAX_VALUE)
 			fieldCountByteCount = 1;
-		else if (fieldCount < Short.MAX_VALUE)
-			fieldCountByteCount = 2;
 		else
-			fieldCountByteCount = 4;
+			fieldCountByteCount = 2;
 		
 		byte mask = WhiteSharkDataType.OBJECT.getMask();
 		mask |= ((byte) fieldCountByteCount) << 4;
@@ -328,16 +326,13 @@ public class WhiteSharkSerializer {
 			buf.put(classCanonicalNameBytes);
 		}
 		switch (fieldCountByteCount) {
-		case 0:
+		default:
 			break;
 		case 1:
 			buf.put((byte) fieldCount);
 			break;
 		case 2:
 			buf.putShort((short) fieldCount);
-			break;
-		default:
-			buf.putInt(fieldCount);
 			break;
 		}
 		
