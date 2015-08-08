@@ -665,11 +665,15 @@ public final class WhiteSharkProgressiveDeserializer {
 		}
 		
 		int fieldCountByteCount = ((mask & 0x30) >> 4);
+		if (fieldCountByteCount == 3)
+			fieldCountByteCount = 4;
 		int count = 0;
 		if (fieldCountByteCount == 1)
 			count = buf.get();
 		else if (fieldCountByteCount == 2)
 			count = buf.getShort();
+		else if (fieldCountByteCount == 4)
+			count = buf.getInt();
 		
 		Object o;
 		if (serializedAsGenerics) {

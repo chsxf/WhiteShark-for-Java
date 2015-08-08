@@ -318,11 +318,14 @@ public class WhiteSharkSerializer {
 			fieldCountByteCount = 0;
 		else if (fieldCount < Byte.MAX_VALUE)
 			fieldCountByteCount = 1;
-		else
+		else if (fieldCount < Short.MAX_VALUE)
 			fieldCountByteCount = 2;
+		else
+			fieldCountByteCount = 4;
+		byte fieldCountByteMask = (byte) ((fieldCountByteCount == 4) ? 3 : fieldCountByteCount);
 		
 		byte mask = WhiteSharkDataType.OBJECT.getMask();
-		mask |= ((byte) fieldCountByteCount) << 4;
+		mask |= ((byte) fieldCountByteMask) << 4;
 		if (serializesAsGenerics)
 			mask |= 0x80;
 		else if (classInDictionary)
@@ -352,6 +355,9 @@ public class WhiteSharkSerializer {
 			break;
 		case 2:
 			buf.putShort((short) fieldCount);
+			break;
+		case 4:
+			buf.putInt(fieldCount);
 			break;
 		}
 		

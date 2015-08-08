@@ -346,6 +346,8 @@ public class WhiteSharkImmediateDeserializer {
 		}
 		
 		int fieldCountByteCount = ((mask & 0x30) >> 4);
+		if (fieldCountByteCount == 3)
+			fieldCountByteCount = 4;
 		int count = 0;
 		if (fieldCountByteCount == 1)
 			count = stream.read();
@@ -354,6 +356,12 @@ public class WhiteSharkImmediateDeserializer {
 			stream.read(b);
 			buf = WhiteSharkUtils.wrapWithByteBuffer(b);
 			count = buf.getShort();
+		}
+		else if (fieldCountByteCount == 4) {
+			b = new byte[4];
+			stream.read(b);
+			buf = WhiteSharkUtils.wrapWithByteBuffer(b);
+			count = buf.getInt();
 		}
 		
 		Object o;
