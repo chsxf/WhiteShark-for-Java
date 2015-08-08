@@ -1,5 +1,6 @@
 package com.xhaleera.whiteshark.tests;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,6 +28,7 @@ public class WhiteSharkPerformanceTest {
 			
 			FileOutputStream fileStream;
 			FileInputStream inStream;
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			
 			// Serializing
 			long start = System.currentTimeMillis();
@@ -78,11 +80,21 @@ public class WhiteSharkPerformanceTest {
 			System.out.println("");
 			
 			// Deserializing (immediate)
+			byte[] b = new byte[256];
+			int c;
 			start = System.currentTimeMillis();
 			System.out.println("Deserializing (immediate) ...");
 			for (int i = 0; i < RUN_COUNT; i++) {
+				baos.reset();
 				inStream = new FileInputStream(new File(path));
-				WhiteSharkImmediateDeserializer.deserialize(streamId, inStream);
+				do {
+					c = inStream.read(b);
+					if (c != -1)
+						baos.write(b, 0, c);
+				}
+				while (c != -1);
+				ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+				WhiteSharkImmediateDeserializer.deserialize(streamId, bais);
 				inStream.close();
 				if (i % PROGRESS_STEP == 0)
 					System.out.print(String.format("%d%% ", (i / PROGRESS_STEP) * 10));
@@ -94,8 +106,6 @@ public class WhiteSharkPerformanceTest {
 			
 			// Deserializing (progressive)
 			WhiteSharkProgressiveDeserializer.DeserializationResult result = null;
-			byte[] b = new byte[256];
-			int c;
 			start = System.currentTimeMillis();
 			System.out.println("Deserializing (progressive) ...");
 			for (int i = 0; i < RUN_COUNT; i++) {
@@ -138,7 +148,6 @@ public class WhiteSharkPerformanceTest {
 			
 			// Deserializing (JSON serialization)
 			start = System.currentTimeMillis();
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			System.out.println("Deserializing (JSON)...");
 			for (int i = 0; i < RUN_COUNT; i++) {
 				baos.reset();
