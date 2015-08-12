@@ -7,9 +7,11 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.Stack;
 import java.util.Vector;
 
+import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableMap;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkException;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkMissingFormatIdentifierException;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkUnsupportedVersionException;
@@ -256,8 +258,17 @@ public final class WhiteSharkProgressiveDeserializer {
 								}
 								else {
 									Class<?> c = level.object.getClass();
-									Field f = c.getField(_result.propertyName);
-									f.set(level.object, _result.result);
+									
+									if (_result.propertyName.startsWith(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX)) {
+										@SuppressWarnings("unchecked")
+										Map<String, Object> map = (Map<String,Object>) level.object;
+										if (map != null && c.getAnnotation(WhiteSharkSerializableMap.class) != null)
+											map.put(_result.propertyName.substring(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX.length()), _result.result);
+									}
+									else {
+										Field f = c.getField(_result.propertyName);
+										f.set(level.object, _result.result);
+									}
 								}
 							}
 							else

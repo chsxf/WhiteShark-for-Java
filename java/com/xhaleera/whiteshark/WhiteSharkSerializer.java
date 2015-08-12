@@ -5,10 +5,12 @@ import java.io.OutputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.Vector;
 
 import com.xhaleera.whiteshark.annotations.WhiteSharkAsGenerics;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializable;
+import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableMap;
 
 /**
  * WhiteShark serializer class
@@ -314,6 +316,10 @@ public class WhiteSharkSerializer {
 		
 		boolean serializesAsGenerics = WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS) || (c.getAnnotation(WhiteSharkAsGenerics.class) != null);
 		
+		@SuppressWarnings("unchecked")
+		Map<String,Object> map = (Map<String,Object>) obj;
+		boolean serializableMap = (map != null && c.getAnnotation(WhiteSharkSerializableMap.class) != null);
+		
 		boolean classInDictionary = classDictionary.contains(c);
 		int classDictionaryIndex = -1;
 		
@@ -337,6 +343,9 @@ public class WhiteSharkSerializer {
 			}
 		}
 		int fieldCount = (serializableFields == null) ? 0 : serializableFields.size();
+		// -- Serializable map?
+		if (serializableMap)
+			fieldCount += ((Map<?, ?>) obj).size();
 		
 		int fieldCountByteCount;
 		if (fieldCount == 0)
@@ -392,6 +401,10 @@ public class WhiteSharkSerializer {
 			for (Field f : serializableFields)
 				serializeProperty(stream, obj, f, options);
 		}
+		if (serializableMap) {
+			for (Map.Entry<String,Object> entry : map.entrySet())
+				serializeProperty(stream, WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX + entry.getKey(), entry.getValue(), options);
+		}
 	}
 	
 	/**
@@ -404,21 +417,34 @@ public class WhiteSharkSerializer {
 	 * @throws IllegalAccessException
 	 */
 	private static void serializeProperty(OutputStream stream, Object obj, Field f, short options) throws IOException, IllegalAccessException {
+		serializeProperty(stream, f.getName(), f.get(obj), options);
+	}
+	
+	/**
+	 * Serializes an object property using its name and value
+	 * @param stream Destination stream
+	 * @param name Property name
+	 * @param obj Property value
+	 * @param options Serialization options
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
+	private static void serializeProperty(OutputStream stream, String name, Object obj, short options) throws IOException, IllegalAccessException {
 		byte mask = WhiteSharkDataType.PROPERTY.getMask();
 		byte[] fieldNameBytes = null;
 		int bufferByteCount;
 		boolean longFieldName = false;
 		
-		boolean propertyInDictionary = propertyDictionary.contains(f.getName());
+		boolean propertyInDictionary = propertyDictionary.contains(name);
 		int propertyDictionaryIndex = -1;
 		if (propertyInDictionary) {
-			propertyDictionaryIndex = propertyDictionary.indexOf(f.getName());
+			propertyDictionaryIndex = propertyDictionary.indexOf(name);
 			bufferByteCount = 3;
 			mask |= 0x40;
 		}
 		else {
-			fieldNameBytes = f.getName().getBytes("US-ASCII");
-			propertyDictionary.add(f.getName());
+			fieldNameBytes = name.getBytes("US-ASCII");
+			propertyDictionary.add(name);
 			
 			int fieldNameByteLength = fieldNameBytes.length;
 			longFieldName = (fieldNameByteLength >= Byte.MAX_VALUE);
@@ -440,7 +466,7 @@ public class WhiteSharkSerializer {
 		}
 		stream.write(buf.array());
 		
-		serialize(stream, f.get(obj), options);
+		serialize(stream, obj, options);
 	}
 	
 }

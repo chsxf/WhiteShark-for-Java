@@ -24,10 +24,13 @@ public final class WhiteSharkConstants {
 	/** Format byte order */
 	public static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 	
+	/** Map property name */
+	public static final String MAP_PROPERTY_NAME_PREFIX = ":map:";
+	public static final String COLLECTION_PROPERTY_NAME_PREFIX = ":coll:";
+	
 	// Format options
 	/** Default option set */
 	public static final short OPTIONS_DEFAULT 						= 0x0000;
 	/** Options to serialize objects as generic class-less objects */
 	public static final short OPTIONS_OBJECTS_AS_GENERICS 			= 0x0001;
-	
 }

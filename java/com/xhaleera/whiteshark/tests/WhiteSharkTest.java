@@ -10,11 +10,13 @@ import java.util.Map;
 
 import org.json.JSONArray;
 
+import com.xhaleera.whiteshark.WhiteSharkConstants;
 import com.xhaleera.whiteshark.WhiteSharkGenericObject;
 import com.xhaleera.whiteshark.WhiteSharkImmediateDeserializer;
 import com.xhaleera.whiteshark.WhiteSharkProgressiveDeserializer;
 import com.xhaleera.whiteshark.WhiteSharkSerializer;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializable;
+import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableMap;
 
 public class WhiteSharkTest {
 
@@ -124,6 +126,17 @@ public class WhiteSharkTest {
 								e.printStackTrace();
 							}
 						}
+					}
+					
+					@SuppressWarnings("unchecked")
+					Map<String,Object> map = (Map<String,Object>) o;
+					if (map != null && c.getAnnotation(WhiteSharkSerializableMap.class) != null) {
+						System.out.println(String.format("%s%s {", tabs(level), WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX));
+						for (Map.Entry<String,Object> entry : map.entrySet()) {
+							System.out.println(String.format("%s\"%s\":", tabs(level + 1), entry.getKey()));
+							dump(entry.getValue(), level + 2);
+						}
+						System.out.println(String.format("%s}", tabs(level)));
 					}
 				}
 				System.out.println(String.format("%s}", tabs(level)));

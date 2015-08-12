@@ -7,8 +7,11 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.Vector;
 
+import com.xhaleera.whiteshark.annotations.WhiteSharkSerializable;
+import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableMap;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkException;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkMismatchingIdentifierException;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkMissingFormatIdentifierException;
@@ -461,9 +464,20 @@ public class WhiteSharkImmediateDeserializer {
 			obj.put(fieldName, deserialize(stream, options));
 		}
 		else {
+			Object o = deserialize(stream, options);
 			Class<?> c = parentObj.getClass();
-			Field f = c.getField(fieldName);
-			f.set(parentObj, deserialize(stream, options));
+			
+			if (fieldName.startsWith(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX)) {
+				@SuppressWarnings("unchecked")
+				Map<String,Object> map = (Map<String,Object>) parentObj;
+				if (map != null && c.getAnnotation(WhiteSharkSerializableMap.class) != null)
+					map.put(fieldName.substring(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX.length()), o);
+			}
+			else {
+				Field f = c.getField(fieldName);
+				if (f.getAnnotation(WhiteSharkSerializable.class) != null)
+					f.set(parentObj, o);
+			}
 		}
 	}
 	

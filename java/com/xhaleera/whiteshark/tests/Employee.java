@@ -1,12 +1,17 @@
 package com.xhaleera.whiteshark.tests;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.json.JSONObject;
 
+import com.xhaleera.whiteshark.WhiteSharkConstants;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializable;
+import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableMap;
 
-public class Employee implements Serializable {
+@WhiteSharkSerializableMap
+public class Employee extends HashMap<String,Integer> implements Serializable {
 
 	static final long serialVersionUID = 1;
 	
@@ -19,13 +24,18 @@ public class Employee implements Serializable {
 	@WhiteSharkSerializable
 	public boolean man;
 	
-	public Employee() { }
+	public Employee() {}
 	
 	public Employee(String firstName, String lastName, int age, boolean man) {
 		this.firstName = firstName;
 		this.lastName = lastName;
 		this.age = age;
 		this.man = man;
+		
+		this.put("missing", 0);
+		this.put("ill", 2);
+		this.put("vacation", 10);
+		this.put("years", 3);
 	}
 	
 	public JSONObject toJSON() {
@@ -34,6 +44,8 @@ public class Employee implements Serializable {
 		json.put("lastName", lastName);
 		json.put("age", age);
 		json.put("man", man);
+		for (Map.Entry<String, Integer> entry : this.entrySet())
+			json.put(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX + entry.getKey(), entry.getValue().intValue());
 		return json;
 	}
 
