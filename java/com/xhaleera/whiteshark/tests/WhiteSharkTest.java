@@ -90,10 +90,10 @@ public class WhiteSharkTest {
 	}
 	
 	private static void dump(Object o) {
-		dump(o, 0);
+		dump(o, 0, false);
 	}
 	
-	private static void dump(Object o, int level) {
+	private static void dump(Object o, int level, boolean serializableMap) {
 		if (o == null)
 			System.out.println(String.format("%snull", tabs(level)));
 		else {
@@ -103,7 +103,7 @@ public class WhiteSharkTest {
 			else if (c.isArray()) {
 				System.out.println(String.format("%s%s [", tabs(level), c.getCanonicalName()));
 				for (int i = 0; i < Array.getLength(o); i++)
-					dump(Array.get(o, i), level + 1);
+					dump(Array.get(o, i), level + 1, false);
 				System.out.println(String.format("%s]", tabs(level)));
 			}
 			else {
@@ -111,7 +111,7 @@ public class WhiteSharkTest {
 				if (o instanceof WhiteSharkGenericObject) {
 					for (Map.Entry<String, Object> entry : ((WhiteSharkGenericObject) o).entrySet()) {
 						System.out.println(String.format("%s\"%s\":", tabs(level), entry.getKey()));
-						dump(entry.getValue(), level + 1);
+						dump(entry.getValue(), level + 1, false);
 					}
 				}
 				else {
@@ -120,7 +120,7 @@ public class WhiteSharkTest {
 						if (f.getAnnotation(WhiteSharkSerializable.class) != null) {
 							System.out.println(String.format("%s\"%s\":", tabs(level), f.getName()));
 							try {
-								dump(f.get(o), level + 1);
+								dump(f.get(o), level + 1, f.getAnnotation(WhiteSharkSerializableMap.class) != null);
 							}
 							catch (IllegalAccessException e) {
 								e.printStackTrace();
@@ -130,11 +130,11 @@ public class WhiteSharkTest {
 					
 					@SuppressWarnings("unchecked")
 					Map<String,Object> map = (Map<String,Object>) o;
-					if (map != null && c.getAnnotation(WhiteSharkSerializableMap.class) != null) {
+					if (map != null && (serializableMap || c.getAnnotation(WhiteSharkSerializableMap.class) != null)) {
 						System.out.println(String.format("%s%s {", tabs(level), WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX));
 						for (Map.Entry<String,Object> entry : map.entrySet()) {
 							System.out.println(String.format("%s\"%s\":", tabs(level + 1), entry.getKey()));
-							dump(entry.getValue(), level + 2);
+							dump(entry.getValue(), level + 2, false);
 						}
 						System.out.println(String.format("%s}", tabs(level)));
 					}

@@ -86,9 +86,9 @@ public final class WhiteSharkProgressiveDeserializer {
 		 * @param result The deserialized property value
 		 * @param propertyName The property name
 		 */
-		public DeserializationResult(Object result, String propertyName) {
+		public DeserializationResult(String propertyName) {
 			this.complete = false;
-			this.result = result;
+			this.result = null;
 			this.propertyName = propertyName;
 			this.isComplex = false;
 			this.objectAsGenerics = false;
@@ -101,7 +101,7 @@ public final class WhiteSharkProgressiveDeserializer {
 		 * Generates incomplete deserialization results.
 		 * 
 		 * @param result The deserialized complex element instance 
-		 * @param objectAsGenerics Flag indicating if the complex instance as an object has been serialized as generics
+		 * @param objectAsGenerics Flag indicating if the complex instance, as an object, has been serialized as generics
 		 * @param subElementCount The number of sub elements for this complex element
 		 */
 		public DeserializationResult(Object result, boolean objectAsGenerics, int subElementCount) {
@@ -145,18 +145,25 @@ public final class WhiteSharkProgressiveDeserializer {
 		public int currentIndex;
 		/** Current object's max sub element index */
 		public final int maxIndex;
+		/** Current object's sub property name */
+		public String propertyName;
+		/** Current object's is a serializable map */
+		public boolean serializableMap;
 		
 		/**
 		 * Constructor
 		 * @param object Object instance for the current level
 		 * @param objectAsGenerics Flag indicating if the object instance has been serialized as generics
 		 * @param maxIndex Max sub element index for the current object instance
+		 * @param serializableMap If set, this level is a serializable map
 		 */
-		public DeserializationLevel(Object object, boolean objectAsGenerics, int maxIndex) {
+		public DeserializationLevel(Object object, boolean objectAsGenerics, int maxIndex, boolean serializableMap) {
 			this.object = object;
 			this.objectAsGenerics = objectAsGenerics;
 			this.currentIndex = 0;
 			this.maxIndex = maxIndex;
+			this.propertyName = null;
+			this.serializableMap = serializableMap;
 		}
 	}
 	/** Deserialization levels stack */
@@ -244,59 +251,8 @@ public final class WhiteSharkProgressiveDeserializer {
 			
 			else {
 				DeserializationResult _result = deserializeNext();
-				if (_result != null) {
-					if (_result.complete)
-						return _result;
-					
-					else {
-						if (levels != null) {
-							DeserializationLevel level = levels.peek();
-							if (_result.propertyName != null) {
-								if (level.objectAsGenerics) {
-									WhiteSharkGenericObject obj = (WhiteSharkGenericObject) level.object;
-									obj.put(_result.propertyName, _result.result);
-								}
-								else {
-									Class<?> c = level.object.getClass();
-									
-									if (_result.propertyName.startsWith(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX)) {
-										@SuppressWarnings("unchecked")
-										Map<String, Object> map = (Map<String,Object>) level.object;
-										if (map != null && c.getAnnotation(WhiteSharkSerializableMap.class) != null)
-											map.put(_result.propertyName.substring(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX.length()), _result.result);
-									}
-									else {
-										Field f = c.getField(_result.propertyName);
-										f.set(level.object, _result.result);
-									}
-								}
-							}
-							else
-								Array.set(level.object, level.currentIndex, _result.result);
-							level.currentIndex++;
-							
-							if (!_result.isComplex) {
-								while (levels.size() > 1) {
-									level = levels.peek();
-									if (level.currentIndex >= level.maxIndex)
-										levels.pop();
-									else
-										break;
-								}
-								
-								level = levels.peek();
-								if (levels.size() == 1 && level.currentIndex >= level.maxIndex)
-									return new DeserializationResult(true, level.object);
-							}
-						}
-						
-						if (_result.isComplex) {
-							if (levels == null)
-								levels = new Stack<DeserializationLevel>();
-							levels.add(new DeserializationLevel(_result.result, _result.objectAsGenerics, _result.subElementCount));
-						}
-					}
-				}
+				if (_result != null && _result.complete)
+					return _result;
 			}
 		}
 		
@@ -485,7 +441,7 @@ public final class WhiteSharkProgressiveDeserializer {
 	 * @throws IllegalArgumentException
 	 * @throws InvocationTargetException
 	 */
-	private DeserializationResult deserializeNext() throws UnsupportedEncodingException, ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+	private DeserializationResult deserializeNext() throws UnsupportedEncodingException, ClassNotFoundException, NoSuchFieldException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		byte[] bytes = baos.toByteArray();
 		byte mask = bytes[0];
 		byte dataType = (byte) (mask & 0xf);
@@ -494,40 +450,108 @@ public final class WhiteSharkProgressiveDeserializer {
 		
 		removeFirstBytesFromStream(1);
 		
+		DeserializationResult result;
+		
 		// Null
 		if (dataType == WhiteSharkDataType.NULL.getMask())
-			return new DeserializationResult(isRoot, null);
+			result = new DeserializationResult(isRoot, null);
 		
 		// Boolean
 		else if (dataType == WhiteSharkDataType.BOOLEAN.getMask())
-			return new DeserializationResult(isRoot, deserializeBoolean(mask));
+			result = new DeserializationResult(isRoot, deserializeBoolean(mask));
 		
 		// Integer
 		else if (dataType == WhiteSharkDataType.INTEGER.getMask())
-			return new DeserializationResult(isRoot, deserializeInteger(mask));
+			result = new DeserializationResult(isRoot, deserializeInteger(mask));
 		
 		// Real
 		else if (dataType == WhiteSharkDataType.REAL.getMask())
-			return new DeserializationResult(isRoot, deserializeReal(mask));
+			result = new DeserializationResult(isRoot, deserializeReal(mask));
 		
 		// Character
 		else if (dataType == WhiteSharkDataType.CHAR.getMask())
-			return new DeserializationResult(isRoot, deserializeCharacter(mask));
+			result = new DeserializationResult(isRoot, deserializeCharacter(mask));
 		
 		// String
 		else if (dataType == WhiteSharkDataType.STRING.getMask())
-			return new DeserializationResult(isRoot, deserializeString(mask));
+			result = new DeserializationResult(isRoot, deserializeString(mask));
 		
 		// Property
 		else if (dataType == WhiteSharkDataType.PROPERTY.getMask())
-			return deserializeProperty(mask);
+			result = deserializeProperty(mask);
 		
 		// Array
 		else if (dataType == WhiteSharkDataType.ARRAY.getMask())
-			return deserializeArray(isRoot, mask);
+			result = deserializeArray(isRoot, mask);
 		
+		// Object
 		else
-			return deserializeObject(isRoot, mask);
+			result = deserializeObject(isRoot, mask);
+		
+		// Result treatment
+		if (result != null && !result.complete) {
+			if (levels != null) {
+				DeserializationLevel level = levels.peek();
+				if (result.propertyName != null)
+					level.propertyName = result.propertyName;
+				else {
+					if (level.propertyName != null) {
+						if (level.objectAsGenerics) {
+							WhiteSharkGenericObject obj = (WhiteSharkGenericObject) level.object;
+							obj.put(level.propertyName, result.result);
+						}
+						else {
+							Class<?> c = level.object.getClass();
+							
+							if (level.propertyName.startsWith(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX)) {
+								@SuppressWarnings("unchecked")
+								Map<String, Object> map = (Map<String,Object>) level.object;
+								if (map != null && (level.serializableMap || c.getAnnotation(WhiteSharkSerializableMap.class) != null))
+									map.put(level.propertyName.substring(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX.length()), result.result);
+							}
+							else {
+								Field f = c.getField(level.propertyName);
+								f.set(level.object, result.result);
+							}
+						}
+					}
+					else
+						Array.set(level.object, level.currentIndex, result.result);
+					level.currentIndex++;
+					
+					if (!result.isComplex) {
+						while (levels.size() > 1) {
+							level = levels.peek();
+							if (level.currentIndex >= level.maxIndex)
+								levels.pop();
+							else
+								break;
+						}
+						
+						level = levels.peek();
+						if (levels.size() == 1 && level.currentIndex >= level.maxIndex)
+							return new DeserializationResult(true, level.object);
+					}
+				}
+			}
+			
+			if (result.isComplex) {
+				boolean serializableMap = false;
+				if (levels == null)
+					levels = new Stack<DeserializationLevel>();
+				else if (levels.size() > 0) {
+					DeserializationLevel level = levels.peek();
+					if (level.propertyName != null && !level.propertyName.startsWith(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX)) {
+						Class<?> c = level.object.getClass();
+						Field f = c.getField(level.propertyName);
+						serializableMap = (f.getAnnotation(WhiteSharkSerializableMap.class) != null);
+					}
+				}
+				levels.add(new DeserializationLevel(result.result, result.objectAsGenerics, result.subElementCount, serializableMap));
+			}
+		}
+		
+		return result;
 	}
 	
 	/**
@@ -763,7 +787,7 @@ public final class WhiteSharkProgressiveDeserializer {
 	 * @throws IllegalArgumentException
 	 * @throws InvocationTargetException
 	 */
-	private DeserializationResult deserializeProperty(byte mask) throws UnsupportedEncodingException, ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+	private DeserializationResult deserializeProperty(byte mask) throws UnsupportedEncodingException, ClassNotFoundException, NoSuchFieldException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		ByteBuffer buf = WhiteSharkUtils.wrapWithByteBuffer(baos.toByteArray());
 		
 		boolean propertyInDictionary = ((mask & 0x40) != 0);
@@ -791,8 +815,7 @@ public final class WhiteSharkProgressiveDeserializer {
 			propertyDictionary.add(fieldName);
 		}
 		
-		DeserializationResult propResult = deserializeNext();
-		return new DeserializationResult(propResult.result, fieldName);
+		return new DeserializationResult(fieldName);
 	}
 	
 }

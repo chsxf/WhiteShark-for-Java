@@ -23,8 +23,11 @@ public class Employee extends HashMap<String,Integer> implements Serializable {
 	public int age;
 	@WhiteSharkSerializable
 	public boolean man;
+	@WhiteSharkSerializable
+	@WhiteSharkSerializableMap
+	public HashMap<String,Boolean> skills;
 	
-	public Employee() {}
+	public Employee() { }
 	
 	public Employee(String firstName, String lastName, int age, boolean man) {
 		this.firstName = firstName;
@@ -36,6 +39,10 @@ public class Employee extends HashMap<String,Integer> implements Serializable {
 		this.put("ill", 2);
 		this.put("vacation", 10);
 		this.put("years", 3);
+		
+		this.skills = new HashMap<>();
+		this.skills.put("management", true);
+		this.skills.put("human_resources", false);
 	}
 	
 	public JSONObject toJSON() {
@@ -44,8 +51,15 @@ public class Employee extends HashMap<String,Integer> implements Serializable {
 		json.put("lastName", lastName);
 		json.put("age", age);
 		json.put("man", man);
+		
 		for (Map.Entry<String, Integer> entry : this.entrySet())
 			json.put(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX + entry.getKey(), entry.getValue().intValue());
+		
+		JSONObject sub = new JSONObject();
+		for (Map.Entry<String, Boolean> entry : this.skills.entrySet())
+			sub.put(entry.getKey(), entry.getValue());
+		json.put("skills", sub);
+		
 		return json;
 	}
 

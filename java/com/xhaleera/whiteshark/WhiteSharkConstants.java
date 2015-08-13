@@ -25,7 +25,7 @@ public final class WhiteSharkConstants {
 	public static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 	
 	/** Map property name */
-	public static final String MAP_PROPERTY_NAME_PREFIX = ":map:";
+	public static final String MAP_PROPERTY_NAME_PREFIX = ":m:";
 	public static final String COLLECTION_PROPERTY_NAME_PREFIX = ":coll:";
 	
 	// Format options
