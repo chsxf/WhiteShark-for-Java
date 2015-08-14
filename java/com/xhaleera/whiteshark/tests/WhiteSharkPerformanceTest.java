@@ -21,7 +21,7 @@ public class WhiteSharkPerformanceTest {
 	
 	public static void main(String[] args) {
 		try {
-			Employee[] data = Employee.buildTestData();
+			Team data = Employee.buildTestData();
 			
 			String streamId = "TEST";
 			String path = "/Users/christophe/Desktop/Test.bin";

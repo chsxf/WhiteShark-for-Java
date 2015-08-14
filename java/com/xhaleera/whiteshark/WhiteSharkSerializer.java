@@ -5,11 +5,13 @@ import java.io.OutputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Vector;
 
 import com.xhaleera.whiteshark.annotations.WhiteSharkAsGenerics;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializable;
+import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableCollection;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableMap;
 
 /**
@@ -60,7 +62,7 @@ public class WhiteSharkSerializer {
 		buffer.putShort(options);
 		stream.write(buffer.array());
 		
-		serialize(stream, obj, options, false);
+		serialize(stream, obj, options, false, false);
 	}
 	
 	/**
@@ -70,10 +72,11 @@ public class WhiteSharkSerializer {
 	 * @param obj Object to serialize
 	 * @param options Serialization options
 	 * @param serializableMap If set, the serialized object is a serializable map
+	 * @param serializableCollection If set, the serialized object is a serializable collection
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */
-	private static void serialize(OutputStream stream, Object obj, short options, boolean serializableMap) throws IOException, IllegalAccessException {
+	private static void serialize(OutputStream stream, Object obj, short options, boolean serializableMap, boolean serializableCollection) throws IOException, IllegalAccessException {
 		if (obj == null)
 			serializeNull(stream, options);
 		
@@ -93,7 +96,7 @@ public class WhiteSharkSerializer {
 			serializeArray(stream, obj, options);
 		
 		else
-			serializeObject(stream, obj, options, serializableMap);
+			serializeObject(stream, obj, options, serializableMap, serializableCollection);
 	}
 	
 	/**
@@ -297,7 +300,7 @@ public class WhiteSharkSerializer {
 		stream.write(buf.array());
 		
 		for (int i = 0; i < length; i++)
-			serialize(stream, Array.get(array, i), options, false);
+			serialize(stream, Array.get(array, i), options, false, false);
 	}
 	
 	/**
@@ -309,18 +312,33 @@ public class WhiteSharkSerializer {
 	 * @param obj Object to serialize
 	 * @param options Serialization options
 	 * @param serializableMap If set, the serialized object is a serializable map
+	 * @param serializableCollection If set, the serialized object is a serializable collection
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */
-	private static void serializeObject(OutputStream stream, Object obj, short options, boolean serializableMap) throws IOException, IllegalAccessException {
+	private static void serializeObject(OutputStream stream, Object obj, short options, boolean serializableMap, boolean serializableCollection) throws IOException, IllegalAccessException {
 		Class<?> c = obj.getClass();
 		byte[] classCanonicalNameBytes = null;
 		
 		boolean serializesAsGenerics = WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS) || (c.getAnnotation(WhiteSharkAsGenerics.class) != null);
-		
-		@SuppressWarnings("unchecked")
-		Map<String,Object> map = (Map<String,Object>) obj;
+
+		Map<String,Object> map = null;
+		try {
+			@SuppressWarnings("unchecked")
+			Map<String,Object> m = (Map<String,Object>) obj;
+			map = m;
+		}
+		catch (ClassCastException e) { }
 		boolean isSerializableMap = (map != null && (serializableMap || c.getAnnotation(WhiteSharkSerializableMap.class) != null));
+		
+		Collection<Object> coll = null;
+		try {
+			@SuppressWarnings("unchecked")
+			Collection<Object> _coll = (Collection<Object>) obj;
+			coll = _coll;
+		}
+		catch (ClassCastException e) { }
+		boolean isSerializableCollection = (coll != null && (serializableCollection || c.getAnnotation(WhiteSharkSerializableCollection.class) != null));
 		
 		boolean classInDictionary = classDictionary.contains(c);
 		int classDictionaryIndex = -1;
@@ -348,6 +366,9 @@ public class WhiteSharkSerializer {
 		// -- Serializable map?
 		if (isSerializableMap)
 			fieldCount += map.size();
+		// -- Serializable collection?
+		if (isSerializableCollection)
+			fieldCount += coll.size();
 		
 		int fieldCountByteCount;
 		if (fieldCount == 0)
@@ -359,7 +380,7 @@ public class WhiteSharkSerializer {
 		else
 			fieldCountByteCount = 4;
 		byte fieldCountByteMask = (byte) ((fieldCountByteCount == 4) ? 3 : fieldCountByteCount);
-		
+	
 		byte mask = WhiteSharkDataType.OBJECT.getMask();
 		mask |= ((byte) fieldCountByteMask) << 4;
 		if (serializesAsGenerics)
@@ -405,7 +426,11 @@ public class WhiteSharkSerializer {
 		}
 		if (isSerializableMap) {
 			for (Map.Entry<String,Object> entry : map.entrySet())
-				serializeProperty(stream, WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX + entry.getKey(), entry.getValue(), options, false);
+				serializeProperty(stream, WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX + entry.getKey(), entry.getValue(), options, false, false);
+		}
+		if (isSerializableCollection) {
+			for (Object o : coll)
+				serializeProperty(stream, WhiteSharkConstants.COLLECTION_ITEM_PROPERTY_NAME, o, options, false, false);
 		}
 	}
 	
@@ -423,12 +448,25 @@ public class WhiteSharkSerializer {
 		
 		boolean serializableMap = false;
 		if (f.getAnnotation(WhiteSharkSerializableMap.class) != null) {
-			@SuppressWarnings("unchecked")
-			Map<String,Object> map = (Map<String,Object>) o;
-			serializableMap = (map != null);
+			try {
+				@SuppressWarnings("unchecked")
+				Map<String,Object> map = (Map<String,Object>) o;
+				serializableMap = (map != null);
+			}
+			catch (ClassCastException e) { }
 		}
 		
-		serializeProperty(stream, f.getName(), o, options, serializableMap);
+		boolean serializableCollection = false;
+		if (f.getAnnotation(WhiteSharkSerializableCollection.class) != null) {
+			try {
+				@SuppressWarnings("unchecked")
+				Collection<Object> coll = (Collection<Object>) o;
+				serializableCollection = (coll != null);
+			}
+			catch (ClassCastException e) { }
+		}
+		
+		serializeProperty(stream, f.getName(), o, options, serializableMap, serializableCollection);
 	}
 	
 	/**
@@ -438,10 +476,11 @@ public class WhiteSharkSerializer {
 	 * @param obj Property value
 	 * @param options Serialization options
 	 * @param serializableMap If set, the property value is a serializable map
+	 * @param serializableCollection If set, the property value is a serializable collection
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */
-	private static void serializeProperty(OutputStream stream, String name, Object obj, short options, boolean serializableMap) throws IOException, IllegalAccessException {
+	private static void serializeProperty(OutputStream stream, String name, Object obj, short options, boolean serializableMap, boolean serializableCollection) throws IOException, IllegalAccessException {
 		byte mask = WhiteSharkDataType.PROPERTY.getMask();
 		byte[] fieldNameBytes = null;
 		int bufferByteCount;
@@ -478,7 +517,7 @@ public class WhiteSharkSerializer {
 		}
 		stream.write(buf.array());
 		
-		serialize(stream, obj, options, serializableMap);
+		serialize(stream, obj, options, serializableMap, serializableCollection);
 	}
 	
 }

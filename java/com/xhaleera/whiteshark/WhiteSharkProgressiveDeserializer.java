@@ -7,10 +7,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Stack;
 import java.util.Vector;
 
+import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableCollection;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableMap;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkException;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkMissingFormatIdentifierException;
@@ -149,6 +151,8 @@ public final class WhiteSharkProgressiveDeserializer {
 		public String propertyName;
 		/** Current object's is a serializable map */
 		public boolean serializableMap;
+		/** Current object's is a serializable collection */
+		public boolean serializableCollection;
 		
 		/**
 		 * Constructor
@@ -156,14 +160,16 @@ public final class WhiteSharkProgressiveDeserializer {
 		 * @param objectAsGenerics Flag indicating if the object instance has been serialized as generics
 		 * @param maxIndex Max sub element index for the current object instance
 		 * @param serializableMap If set, this level is a serializable map
+		 * @param serializableCollection If set, this level is a serializable collection
 		 */
-		public DeserializationLevel(Object object, boolean objectAsGenerics, int maxIndex, boolean serializableMap) {
+		public DeserializationLevel(Object object, boolean objectAsGenerics, int maxIndex, boolean serializableMap, boolean serializableCollection) {
 			this.object = object;
 			this.objectAsGenerics = objectAsGenerics;
 			this.currentIndex = 0;
 			this.maxIndex = maxIndex;
 			this.propertyName = null;
 			this.serializableMap = serializableMap;
+			this.serializableCollection = serializableCollection;
 		}
 	}
 	/** Deserialization levels stack */
@@ -503,11 +509,23 @@ public final class WhiteSharkProgressiveDeserializer {
 						else {
 							Class<?> c = level.object.getClass();
 							
-							if (level.propertyName.startsWith(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX)) {
-								@SuppressWarnings("unchecked")
-								Map<String, Object> map = (Map<String,Object>) level.object;
-								if (map != null && (level.serializableMap || c.getAnnotation(WhiteSharkSerializableMap.class) != null))
-									map.put(level.propertyName.substring(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX.length()), result.result);
+							if (level.propertyName.equals(WhiteSharkConstants.COLLECTION_ITEM_PROPERTY_NAME)) {
+								try {
+									@SuppressWarnings("unchecked")
+									Collection<Object> coll = (Collection<Object>) level.object;
+									if (coll != null && (level.serializableCollection || c.getAnnotation(WhiteSharkSerializableCollection.class) != null))
+										coll.add(result.result);
+								}
+								catch (ClassCastException e) { }
+							}
+							else if (level.propertyName.startsWith(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX)) {
+								try {
+									@SuppressWarnings("unchecked")
+									Map<String, Object> map = (Map<String,Object>) level.object;
+									if (map != null && (level.serializableMap || c.getAnnotation(WhiteSharkSerializableMap.class) != null))
+										map.put(level.propertyName.substring(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX.length()), result.result);
+								}
+								catch (ClassCastException e) { }
 							}
 							else {
 								Field f = c.getField(level.propertyName);
@@ -537,17 +555,19 @@ public final class WhiteSharkProgressiveDeserializer {
 			
 			if (result.isComplex) {
 				boolean serializableMap = false;
+				boolean serializableCollection = false;
 				if (levels == null)
 					levels = new Stack<DeserializationLevel>();
 				else if (levels.size() > 0) {
 					DeserializationLevel level = levels.peek();
-					if (level.propertyName != null && !level.propertyName.startsWith(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX)) {
+					if (level.propertyName != null && !level.propertyName.equals(WhiteSharkConstants.COLLECTION_ITEM_PROPERTY_NAME) && !level.propertyName.startsWith(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX)) {
 						Class<?> c = level.object.getClass();
 						Field f = c.getField(level.propertyName);
 						serializableMap = (f.getAnnotation(WhiteSharkSerializableMap.class) != null);
+						serializableCollection = (f.getAnnotation(WhiteSharkSerializableCollection.class) != null);
 					}
 				}
-				levels.add(new DeserializationLevel(result.result, result.objectAsGenerics, result.subElementCount, serializableMap));
+				levels.add(new DeserializationLevel(result.result, result.objectAsGenerics, result.subElementCount, serializableMap, serializableCollection));
 			}
 		}
 		

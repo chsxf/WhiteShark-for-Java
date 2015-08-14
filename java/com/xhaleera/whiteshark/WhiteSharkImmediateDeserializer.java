@@ -7,10 +7,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Vector;
 
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializable;
+import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableCollection;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableMap;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkException;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkMismatchingIdentifierException;
@@ -73,7 +75,7 @@ public class WhiteSharkImmediateDeserializer {
 			throw new WhiteSharkUnsupportedVersionException("Versions do not match");
 		
 		short options = buf.getShort();
-		return deserialize(stream, options, false);
+		return deserialize(stream, options, false, false);
 	}
 	
 	/**
@@ -81,6 +83,7 @@ public class WhiteSharkImmediateDeserializer {
 	 * @param stream Stream to deserialize
 	 * @param options Serialization options
 	 * @param serializableMap If set, the deserializable object is a serializable map
+	 * @param serializableCollection If set, the deserializable object is a serializable collection
 	 * @return a generic Object containing the deserialized value
 	 * @throws ClassNotFoundException
 	 * @throws NoSuchMethodException
@@ -93,7 +96,7 @@ public class WhiteSharkImmediateDeserializer {
 	 * @throws NoSuchFieldException
 	 * @throws IOException
 	 */
-	private static Object deserialize(InputStream stream, short options, boolean serializableMap) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkNotAPropertyException, NoSuchFieldException, IOException {
+	private static Object deserialize(InputStream stream, short options, boolean serializableMap, boolean serializableCollection) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkNotAPropertyException, NoSuchFieldException, IOException {
 		byte mask = (byte) stream.read();
 		byte dataType = (byte) (mask & 0xf);
 		
@@ -127,7 +130,7 @@ public class WhiteSharkImmediateDeserializer {
 		
 		// Object
 		else
-			return deserializeObject(stream, mask, options, serializableMap);
+			return deserializeObject(stream, mask, options, serializableMap, serializableCollection);
 	}
 
 	/**
@@ -321,7 +324,7 @@ public class WhiteSharkImmediateDeserializer {
 		}
 		Object arr = Array.newInstance(primitiveClass, count);
 		for (int i = 0; i < count; i++)
-			Array.set(arr, i, deserialize(stream, options, false));
+			Array.set(arr, i, deserialize(stream, options, false, false));
 		return arr;
 	}
 	
@@ -334,6 +337,7 @@ public class WhiteSharkImmediateDeserializer {
 	 * @param mask Byte mask
 	 * @param options Serialization options
 	 * @param serializableMap If set, the deserializable object is a serializable map
+	 * @param serializableCollection If set, the deserializable object is a serializable collection
 	 * @return the deserialized Object instance
 	 * @throws IOException
 	 * @throws ClassNotFoundException
@@ -346,7 +350,7 @@ public class WhiteSharkImmediateDeserializer {
 	 * @throws WhiteSharkNotAPropertyException
 	 * @throws NoSuchFieldException
 	 */
-	private static Object deserializeObject(InputStream stream, byte mask, short options, boolean serializableMap) throws IOException, ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkNotAPropertyException, NoSuchFieldException {
+	private static Object deserializeObject(InputStream stream, byte mask, short options, boolean serializableMap, boolean serializableCollection) throws IOException, ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkNotAPropertyException, NoSuchFieldException {
 		byte[] b, classNameBytes = null;
 		ByteBuffer buf;
 		boolean serializedAsGenerics = WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS) || ((mask & 0x80) != 0);
@@ -403,7 +407,7 @@ public class WhiteSharkImmediateDeserializer {
 		}
 		
 		for (int i = 0; i < count; i++)
-			deserializeProperty(stream, o, serializedAsGenerics, serializableMap, options);
+			deserializeProperty(stream, o, serializedAsGenerics, serializableMap, serializableCollection, options);
 		
 		return o;
 	}
@@ -413,6 +417,7 @@ public class WhiteSharkImmediateDeserializer {
 	 * @param stream Stream to deserialize
 	 * @param parentObj Object whose the property belongs
 	 * @param parentObjectIsSerializableMap If set, the parent object is a serializable map
+	 * @param parentObjectIsSerializableCollection If set, the parent object is a serializable collection
 	 * @param options Serialization options
 	 * @throws IOException
 	 * @throws WhiteSharkNotAPropertyException
@@ -425,7 +430,7 @@ public class WhiteSharkImmediateDeserializer {
 	 * @throws InstantiationException
 	 * @throws InvocationTargetException
 	 */
-	private static void deserializeProperty(InputStream stream, Object parentObj, boolean parentObjectAsGenerics, boolean parentObjectIsSerializableMap, short options) throws IOException, WhiteSharkNotAPropertyException, IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException, ClassNotFoundException, NoSuchMethodException, InstantiationException, InvocationTargetException {
+	private static void deserializeProperty(InputStream stream, Object parentObj, boolean parentObjectAsGenerics, boolean parentObjectIsSerializableMap, boolean parentObjectIsSerializableCollection, short options) throws IOException, WhiteSharkNotAPropertyException, IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException, ClassNotFoundException, NoSuchMethodException, InstantiationException, InvocationTargetException {
 		byte mask = (byte) stream.read();
 		byte dataType = (byte) (mask & 0xf);
 		byte[] b;
@@ -464,24 +469,39 @@ public class WhiteSharkImmediateDeserializer {
 		
 		if (parentObjectAsGenerics) {
 			WhiteSharkGenericObject obj = (WhiteSharkGenericObject) parentObj;
-			obj.put(fieldName, deserialize(stream, options, false));
+			obj.put(fieldName, deserialize(stream, options, false, false));
 		}
 		else {
 			Class<?> c = parentObj.getClass();
 			
-			if (fieldName.startsWith(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX)) {
-				Object o = deserialize(stream, options, false);
+			if (fieldName.equals(WhiteSharkConstants.COLLECTION_ITEM_PROPERTY_NAME)) {
+				Object o = deserialize(stream, options, false, false);
 				
-				@SuppressWarnings("unchecked")
-				Map<String,Object> map = (Map<String,Object>) parentObj;
-				if (map != null && (parentObjectIsSerializableMap || c.getAnnotation(WhiteSharkSerializableMap.class) != null))
-					map.put(fieldName.substring(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX.length()), o);
+				try {
+					@SuppressWarnings("unchecked")
+					Collection<Object> coll = (Collection<Object>) parentObj;
+					if (coll != null && (parentObjectIsSerializableCollection || c.getAnnotation(WhiteSharkSerializableCollection.class) != null))
+						coll.add(o);
+				}
+				catch (ClassCastException e) { }
+			}
+			else if (fieldName.startsWith(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX)) {
+				Object o = deserialize(stream, options, false, false);
+				
+				try {
+					@SuppressWarnings("unchecked")
+					Map<String,Object> map = (Map<String,Object>) parentObj;
+					if (map != null && (parentObjectIsSerializableMap || c.getAnnotation(WhiteSharkSerializableMap.class) != null))
+						map.put(fieldName.substring(WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX.length()), o);
+				}
+				catch (ClassCastException e) { }
 			}
 			else {
 				Field f = c.getField(fieldName);
 				boolean isSerializableMap = (f.getAnnotation(WhiteSharkSerializableMap.class) != null);
+				boolean isSerializableCollection = (f.getAnnotation(WhiteSharkSerializableCollection.class) != null);
 				
-				Object o = deserialize(stream, options, isSerializableMap);
+				Object o = deserialize(stream, options, isSerializableMap, isSerializableCollection);
 				
 				if (f.getAnnotation(WhiteSharkSerializable.class) != null)
 					f.set(parentObj, o);

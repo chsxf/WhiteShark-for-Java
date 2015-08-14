@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.Map;
 
 import org.json.JSONArray;
@@ -16,13 +17,14 @@ import com.xhaleera.whiteshark.WhiteSharkImmediateDeserializer;
 import com.xhaleera.whiteshark.WhiteSharkProgressiveDeserializer;
 import com.xhaleera.whiteshark.WhiteSharkSerializer;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializable;
+import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableCollection;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableMap;
 
 public class WhiteSharkTest {
 
 	public static void main(String[] args) {
 		try {
-			Employee[] data = Employee.buildTestData();
+			Team data = Employee.buildTestData();
 			dump(data);
 			
 			String streamId = "TEST";
@@ -90,10 +92,10 @@ public class WhiteSharkTest {
 	}
 	
 	private static void dump(Object o) {
-		dump(o, 0, false);
+		dump(o, 0, false, false);
 	}
 	
-	private static void dump(Object o, int level, boolean serializableMap) {
+	private static void dump(Object o, int level, boolean serializableMap, boolean serializableCollection) {
 		if (o == null)
 			System.out.println(String.format("%snull", tabs(level)));
 		else {
@@ -103,7 +105,7 @@ public class WhiteSharkTest {
 			else if (c.isArray()) {
 				System.out.println(String.format("%s%s [", tabs(level), c.getCanonicalName()));
 				for (int i = 0; i < Array.getLength(o); i++)
-					dump(Array.get(o, i), level + 1, false);
+					dump(Array.get(o, i), level + 1, false, false);
 				System.out.println(String.format("%s]", tabs(level)));
 			}
 			else {
@@ -111,7 +113,7 @@ public class WhiteSharkTest {
 				if (o instanceof WhiteSharkGenericObject) {
 					for (Map.Entry<String, Object> entry : ((WhiteSharkGenericObject) o).entrySet()) {
 						System.out.println(String.format("%s\"%s\":", tabs(level), entry.getKey()));
-						dump(entry.getValue(), level + 1, false);
+						dump(entry.getValue(), level + 1, false, false);
 					}
 				}
 				else {
@@ -120,7 +122,7 @@ public class WhiteSharkTest {
 						if (f.getAnnotation(WhiteSharkSerializable.class) != null) {
 							System.out.println(String.format("%s\"%s\":", tabs(level), f.getName()));
 							try {
-								dump(f.get(o), level + 1, f.getAnnotation(WhiteSharkSerializableMap.class) != null);
+								dump(f.get(o), level + 1, f.getAnnotation(WhiteSharkSerializableMap.class) != null, f.getAnnotation(WhiteSharkSerializableCollection.class) != null);
 							}
 							catch (IllegalAccessException e) {
 								e.printStackTrace();
@@ -128,16 +130,31 @@ public class WhiteSharkTest {
 						}
 					}
 					
-					@SuppressWarnings("unchecked")
-					Map<String,Object> map = (Map<String,Object>) o;
-					if (map != null && (serializableMap || c.getAnnotation(WhiteSharkSerializableMap.class) != null)) {
-						System.out.println(String.format("%s%s {", tabs(level), WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX));
-						for (Map.Entry<String,Object> entry : map.entrySet()) {
-							System.out.println(String.format("%s\"%s\":", tabs(level + 1), entry.getKey()));
-							dump(entry.getValue(), level + 2, false);
+					try {
+						@SuppressWarnings("unchecked")
+						Map<String,Object> map = (Map<String,Object>) o;
+						if (map != null && (serializableMap || c.getAnnotation(WhiteSharkSerializableMap.class) != null)) {
+							System.out.println(String.format("%s%s {", tabs(level), WhiteSharkConstants.MAP_PROPERTY_NAME_PREFIX));
+							for (Map.Entry<String,Object> entry : map.entrySet()) {
+								System.out.println(String.format("%s\"%s\":", tabs(level + 1), entry.getKey()));
+								dump(entry.getValue(), level + 2, false, false);
+							}
+							System.out.println(String.format("%s}", tabs(level)));
 						}
-						System.out.println(String.format("%s}", tabs(level)));
 					}
+					catch (ClassCastException e) { }
+					
+					try {
+						@SuppressWarnings("unchecked")
+						Collection<Object> coll = (Collection<Object>) o;
+						if (coll != null && (serializableCollection || c.getAnnotation(WhiteSharkSerializableCollection.class) != null)) {
+							System.out.println(String.format("%s%s [", tabs(level), WhiteSharkConstants.COLLECTION_ITEM_PROPERTY_NAME));
+							for (Object _o : coll)
+								dump(_o, level + 1, false, false);
+							System.out.println(String.format("%s]", tabs(level)));
+						}
+					}
+					catch (ClassCastException e) { }
 				}
 				System.out.println(String.format("%s}", tabs(level)));
 			}

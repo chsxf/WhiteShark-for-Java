@@ -26,7 +26,7 @@ public final class WhiteSharkConstants {
 	
 	/** Map property name */
 	public static final String MAP_PROPERTY_NAME_PREFIX = ":m:";
-	public static final String COLLECTION_PROPERTY_NAME_PREFIX = ":coll:";
+	public static final String COLLECTION_ITEM_PROPERTY_NAME = ":ci:";
 	
 	// Format options
 	/** Default option set */
