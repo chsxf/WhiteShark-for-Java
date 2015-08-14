@@ -23,7 +23,14 @@ import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableMap;
  */
 public class WhiteSharkSerializer {
 
+	/** Default class mapper */
+	private static final WhiteSharkExternalClassMapper defaultClassMapper = new WhiteSharkExternalClassMapper();
+	/** Class mapper used for serialization */
+	private static WhiteSharkExternalClassMapper classMapper = null;
+	
+	/** Classes dictionary */
 	private static Vector<Class<?>> classDictionary = new Vector<>();
+	/** Properties dictionary */
 	private static Vector<String> propertyDictionary = new Vector<>();
 	
 	/**
@@ -36,7 +43,21 @@ public class WhiteSharkSerializer {
 	 * @throws IllegalAccessException
 	 */
 	public static void serialize(String identifier, OutputStream stream, Object obj) throws IOException, IllegalAccessException {
-		serialize(identifier, stream, obj, WhiteSharkConstants.OPTIONS_DEFAULT);
+		serialize(identifier, stream, obj, WhiteSharkConstants.OPTIONS_DEFAULT, defaultClassMapper);
+	}
+	
+	/**
+	 * Serializes an object using WhiteShark serialization format
+	 * 
+	 * @param identifier Custom WhiteShark stream identifier. This identifier is sanitized to a four-byte identifier.
+	 * @param stream Destination stream
+	 * @param obj Object to serialize
+	 * @param classMapper External class mapper
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
+	public static void serialize(String identifier, OutputStream stream, Object obj, WhiteSharkExternalClassMapper classMapper) throws IOException, IllegalAccessException {
+		serialize(identifier, stream, obj, WhiteSharkConstants.OPTIONS_DEFAULT, classMapper);
 	}
 	
 	/**
@@ -50,6 +71,23 @@ public class WhiteSharkSerializer {
 	 * @throws IllegalAccessException
 	 */
 	public static void serialize(String identifier, OutputStream stream, Object obj, short options) throws IOException, IllegalAccessException {
+		serialize(identifier, stream, obj, options, defaultClassMapper);
+	}
+	
+	/**
+	 * Serializes an object using WhiteShark serialization format
+	 * 
+	 * @param identifier Custom WhiteShark stream identifier. This identifier is sanitized to a four-byte identifier.
+	 * @param stream Destination stream
+	 * @param obj Object to serialize
+	 * @param options Serialization options
+	 * @param classMapper External class mapper
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
+	public static void serialize(String identifier, OutputStream stream, Object obj, short options, WhiteSharkExternalClassMapper classMapper) throws IOException, IllegalAccessException {
+		WhiteSharkSerializer.classMapper = (classMapper == null) ? defaultClassMapper : classMapper;
+		
 		classDictionary.clear();
 		propertyDictionary.clear();
 		
@@ -266,7 +304,7 @@ public class WhiteSharkSerializer {
 		int classDictionaryIndex = -1;
 		if (!classInDictionary) {
 			classDictionary.add(componentClass);
-			classNameBytes = componentClass.getName().getBytes("US-ASCII");
+			classNameBytes = classMapper.getExternalFromClass(componentClass).getBytes("US-ASCII");
 			classNameLength += classNameBytes.length;
 		}
 		else
@@ -346,7 +384,7 @@ public class WhiteSharkSerializer {
 		if (!serializesAsGenerics) {
 			if (!classInDictionary) {
 				classDictionary.add(c);
-				classCanonicalNameBytes = c.getCanonicalName().getBytes("US-ASCII");
+				classCanonicalNameBytes = classMapper.getExternalFromClass(c).getBytes("US-ASCII");
 			}
 			else
 				classDictionaryIndex = classDictionary.indexOf(c);

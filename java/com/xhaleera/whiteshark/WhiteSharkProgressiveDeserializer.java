@@ -131,6 +131,11 @@ public final class WhiteSharkProgressiveDeserializer {
 	/** Property dictionary */
 	private Vector<String> propertyDictionary;
 	
+	/** Default class mapper */
+	private static final WhiteSharkExternalClassMapper defaultClassMapper = new WhiteSharkExternalClassMapper();
+	/** Instance's class mapper */
+	private WhiteSharkExternalClassMapper classMapper;
+	
 	/**
 	 * Deserialization level container
 	 * 
@@ -180,12 +185,23 @@ public final class WhiteSharkProgressiveDeserializer {
 	 * @param identifier Custom stream identifier
 	 */
 	public WhiteSharkProgressiveDeserializer(String identifier) {
+		this(identifier, defaultClassMapper);
+	}
+
+	/**
+	 * Constructor
+	 * @param identifier Custom stream identifier
+	 * @param classMapper External class mapper
+	 */
+	public WhiteSharkProgressiveDeserializer(String identifier, WhiteSharkExternalClassMapper classMapper) {
 		this.identifier = WhiteSharkUtils.sanitizeIdentifier(identifier);
 		options = WhiteSharkConstants.OPTIONS_DEFAULT;
 		baos = new ByteArrayOutputStream();
 		
 		headerDeserialized = false;
 		levels = null;
+		
+		this.classMapper = (classMapper == null) ? defaultClassMapper : classMapper;
 		
 		classDictionary = new Vector<>();
 		propertyDictionary = new Vector<>();
@@ -713,7 +729,7 @@ public final class WhiteSharkProgressiveDeserializer {
 			primitiveClass = classDictionary.elementAt(classDictionaryIndex);
 		else {
 			String className = new String(b, "US-ASCII");
-			primitiveClass = Class.forName(className);
+			primitiveClass = classMapper.getClassFromExternal(className);
 			classDictionary.add(primitiveClass);
 		}
 		
@@ -777,7 +793,7 @@ public final class WhiteSharkProgressiveDeserializer {
 			if (!classInDictionary) {
 				removeFirstBytesFromStream(2 + classNameLength + fieldCountByteCount);
 				String className = new String(classNameBytes, "US-ASCII");
-				c = Class.forName(className);
+				c = classMapper.getClassFromExternal(className);
 				classDictionary.add(c);
 			}
 			else {

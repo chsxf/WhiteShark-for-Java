@@ -32,7 +32,14 @@ import com.xhaleera.whiteshark.exceptions.WhiteSharkUnsupportedVersionException;
  */
 public class WhiteSharkImmediateDeserializer {
 
+	/** Default class mapper */
+	private static final WhiteSharkExternalClassMapper defaultClassMapper = new WhiteSharkExternalClassMapper();
+	/** Class mapper used for deserialization */
+	private static WhiteSharkExternalClassMapper classMapper;
+	
+	/** Classes dictionary */
 	private static Vector<Class<?>> classDictionary = new Vector<>();
+	/** Properties dictionary */
 	private static Vector<String> propertyDictionary = new Vector<>();
 	
 	/**
@@ -53,6 +60,30 @@ public class WhiteSharkImmediateDeserializer {
 	 * @throws IOException
 	 */
 	public static Object deserialize(String identifier, InputStream stream) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkException, NoSuchFieldException, IOException {
+		return deserialize(identifier, stream, defaultClassMapper);
+	}
+
+	/**
+	 * Deserializes a completely buffered WhiteShark stream
+	 * 
+	 * @param identifier Custom WhiteShark stream identifier to handle
+	 * @param stream Stream to deserialize
+	 * @param classMapper External class mapper
+	 * @return a generic Object containing the deserialized value
+	 * @throws ClassNotFoundException
+	 * @throws NoSuchMethodException
+	 * @throws SecurityException
+	 * @throws InstantiationException
+	 * @throws IllegalAccessException
+	 * @throws IllegalArgumentException
+	 * @throws InvocationTargetException
+	 * @throws WhiteSharkException In case the format identifier, the custom identifier or the stream version do not match.
+	 * @throws NoSuchFieldException
+	 * @throws IOException
+	 */
+	public static Object deserialize(String identifier, InputStream stream, WhiteSharkExternalClassMapper classMapper) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkException, NoSuchFieldException, IOException {
+		WhiteSharkImmediateDeserializer.classMapper = (classMapper == null) ? defaultClassMapper : classMapper;
+		
 		classDictionary.clear();
 		propertyDictionary.clear();
 		
@@ -319,7 +350,7 @@ public class WhiteSharkImmediateDeserializer {
 			primitiveClass = classDictionary.elementAt(classDictionaryIndex);
 		else {
 			String className = new String(classNameBytes, "US-ASCII");
-			primitiveClass = Class.forName(className);
+			primitiveClass = classMapper.getClassFromExternal(className);
 			classDictionary.add(primitiveClass);
 		}
 		Object arr = Array.newInstance(primitiveClass, count);
@@ -397,7 +428,7 @@ public class WhiteSharkImmediateDeserializer {
 			Class<?> c;
 			if (!classInDictionary) {
 				String className = new String(classNameBytes, "US-ASCII");
-				c = Class.forName(className);
+				c = classMapper.getClassFromExternal(className);
 				classDictionary.add(c);
 			}
 			else

@@ -84,6 +84,7 @@ public class Employee extends HashMap<String,Integer> implements Serializable {
 
 	public static Team buildTestData() {
 		Team t = new Team();
+		t.monthDays = new int[]{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 		t.add(new Employee("Charlotte", "HUMBERT", 30, false, 1.8f));
 		t.add(new Employee("Eric", "BALLET", 38, true, 1.65f));
 		t.add(new Employee("Charles", "SAVEUR", 35, true, 1.8f));
