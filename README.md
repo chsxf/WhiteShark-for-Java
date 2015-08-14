@@ -11,7 +11,7 @@ We do not provide a JAR file yet for the library, so you have to import the `com
 ## Serialization
 Serialization is very simple with WhiteShark. Supported types are null, boolean, integers, floating-point numbers, strings, arrays and objects.
 
-By design, serialization of object fields is done on an opt-in basis. In other words, you have to specific explicitly the serializaable fields.
+By design, serialization of object fields is done on an opt-in basis. In other words, you have to specific explicitly the serializable fields.
 This is done through the `@WhiteSharkSerializable` annotation.
 
 ### Example
@@ -23,6 +23,50 @@ class MySerializableClass {
 	public string serializedString;
 }
 ```
+
+### Serialization of native Java `Map` and `Collection` interfaces
+`Map` and `Collection` instances are considered as common objects by WhiteShark. This means only their fields annotated with `WhiteSharkSerializable` will be serialized by default.
+
+In the following example, the `serializedMapInstance` field will be serialized, but not its content.
+
+```java
+class MySerializableClass {
+	public string notSerializedString;
+
+	@WhiteSharkSerializable
+	public string serializedString;
+
+	@WhiteSharkSerializable
+	public HashMap<String,Object> serializedMapInstance;
+}
+```
+
+To serialize the content of a `Map` (limited at this time to `Map<String,?>`) or a `Collection`, add `WhiteSharkSerializableMap` or `WhiteSharkSerializableCollection` annotation to this field.
+
+```java
+	...
+	@WhiteSharkSerializable
+	@WhiteSharkSerializableMap
+	public HashMap<String,Object> serializedMapInstance;
+}
+```
+
+You can also add these annotations at the type level, if your class extends `Map<String,?>` or `Collection`.
+
+```java
+@WhiteSharkSerializableCollection
+class MyCollection extends Collection<Integer> {
+	...
+}
+
+class MySerializableClass {
+	...
+	@WhiteSharkSerializable
+	public MyCollection serializedCollection;
+}
+```
+
+Adding `WhiteSharkSerializableMap` or `WhiteSharkSerializableCollection` annotation to a not eligible field or type has no effect.
 
 ### Calling the Default Serializer
 A WhiteShark stream of serailized data starts with a header. This header contains a custom 4-byte long alphanumeric identifier that indicates the potential stream usage. It allows you during deserialization to ensure the data you're receiving is the right one, and acting accordingly if not.
@@ -95,23 +139,48 @@ As a Java library, it is interesting to compare it against the Java native seria
 ## Data Set
 As an example, we serialize a list of fictitious employees.
 
-| First Name | Last Name | Age | Male  |
-|------------|-----------|-----|-------|
-| Charlotte  | HUMBERT   | 30  | False |
-| Eric       | BALLET    | 38  | True  |
-| Charles    | SAUVEUR   | 35  | True  |
-| Carli      | BRUNA     | 26  | False |
-| William    | MARTIN    | 31  | True  |
-| Marine     | DAVID     | 35  | False |
+| First Name | Last Name | Age | Male  | Height |
+|------------|-----------|-----|-------|--------|
+| Charlotte  | HUMBERT   | 30  | False | 1.8 m  |
+| Eric       | BALLET    | 38  | True  | 1.65 m |
+| Charles    | SAUVEUR   | 35  | True  | 1.8 m  |
+| Carli      | BRUNA     | 26  | False | 1.6 m  |
+| William    | MARTIN    | 31  | True  | 1.75 m |
+| Marine     | DAVID     | 35  | False | 1.55 m |
+
+Each employee has some additional data. For sake of simplification, all employees have the exact same data.
+
+First, a list of work day categories, implemented as a `Map`.
+
+| Category | Count |
+|----------|-------|
+| missing  | 0     |
+| ill      | 2     |
+| vacation | 10    |
+| years    | 3     |
+
+Then, a list of meta data, also implement as a `Map`.
+
+| Meta          | Value      |
+|---------------|------------|
+| Date of birth | 1901-01-01 |
+| Entry date    | 1902-01-01 |
+
+And finally, a list of skills, implemented as a `Collection`.
+
+| Skill           |
+|-----------------|
+| Management      |
+| Human Resources |
 
 ## Output Size
 You can find in the following list the amount of data required to store the serialized stream in each format.
 
-| Format      | Size      | Diff to WhiteShark |
-|-------------|-----------|--------------------|
-| WhiteShark  | 302 bytes | -                  |
-| Java native | 351 bytes | +16.22%            |
-| JSON        | 382 bytes | +26.49%            |			
+| Format      | Size        | Diff to WhiteShark |
+|-------------|-------------|--------------------|
+| WhiteShark  | 1,165 bytes | -                  |
+| Java native | 1,674 bytes | +43.69%            |
+| JSON        | 1,446 bytes | +24.12%            |			
 
 ## Performance
 Soon
