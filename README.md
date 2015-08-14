@@ -1,5 +1,5 @@
 # WhiteShark
-WhiteShark is a binary serialization format with a very little overhead and a much smaller footprint than JSON or Java native serialization format.
+WhiteShark is a binary serialization format with a very little overhead and a smaller footprint than JSON or Java native serialization format.
 
 # Supported Languages
 As a serialization format, WhiteShark can be used with any programming language.
