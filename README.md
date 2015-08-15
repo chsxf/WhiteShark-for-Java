@@ -25,7 +25,7 @@ class MySerializableClass {
 ```
 
 ### Serialization of native Java `Map` and `Collection` interfaces
-`Map` and `Collection` instances are considered as common objects by WhiteShark. This means only their fields annotated with `WhiteSharkSerializable` will be serialized by default.
+`Map` and `Collection` instances are considered as common objects by WhiteShark. This means only their fields annotated with `@WhiteSharkSerializable` will be serialized by default.
 
 In the following example, the `serializedMapInstance` field will be serialized, but not its content.
 
@@ -41,7 +41,7 @@ class MySerializableClass {
 }
 ```
 
-To serialize the content of a `Map` (limited at this time to `Map<String,?>`) or a `Collection`, add `WhiteSharkSerializableMap` or `WhiteSharkSerializableCollection` annotation to this field.
+To serialize the content of a `Map` (limited at this time to `Map<String,?>`) or a `Collection`, add `@WhiteSharkSerializableMap` or `@WhiteSharkSerializableCollection` annotation to this field.
 
 ```java
 	...
@@ -66,7 +66,9 @@ class MySerializableClass {
 }
 ```
 
-Adding `WhiteSharkSerializableMap` or `WhiteSharkSerializableCollection` annotation to a not eligible field or type has no effect.
+If your class or field implements both interfaces, it is possible to add the two annotations and `Map` and `Collection` serializations will apply.
+
+Adding `@WhiteSharkSerializableMap` or `@WhiteSharkSerializableCollection` annotation to a not eligible field or type has no effect.
 
 ### Calling the Default Serializer
 A WhiteShark stream of serailized data starts with a header. This header contains a custom 4-byte long alphanumeric identifier that indicates the potential stream usage. It allows you during deserialization to ensure the data you're receiving is the right one, and acting accordingly if not.
@@ -96,6 +98,19 @@ fileStream.close();
 ```
 
 *Disabling class mapping, i.e. serializing objects as generics, can also be achieved on a class-by-class basis thanks to the `@WhiteSharkAsGenerics` class annotation.*
+
+### External class mapping
+Serialization is used to store objects permanently, in a database for example. Thus, serialization and deserialization is generally done using the same code base.
+
+However, in most cases, serialized data are used over a network to achieve data formatting in an efficient way. Then, serialization and deserialization will probably occur on different code bases. For an example, a Java multiuser server communicating with a Unity C# client. Different languages imply different class name specifications (PHP packages are separated with `::`, but Java package separator is `.`).
+
+WhiteShark provides a way to automate external class mapping using the `WhiteSharkExternalClassMapper` class. You can pass an properly configured instance to specific variants of `serialize()` and `deserialize()` methods and of the `WhiteSharkProgressiveDeserializer` constructor.
+
+```java
+	WhiteSharkExternalClassMapper mapper = new WhiteSharkExternalClassMapper();
+	mapper.mapClass(MyJavaClass.class, "Xhaleera::MyPHPClass");
+	WhiteSharkSerializer.serialize("STID", inputStream, objectToSerialize, mapper);
+```
 
 ## Immediate Deserialization
 Immediate deserialization is the simplest and fastest method as it can deserialize your WhiteShark stream in just one call. However, it requires the WhiteShark stream to be fully available during deserialization.
@@ -134,9 +149,17 @@ inStream.close();
 ```
 
 # Comparison with Other Serialization Formats
-As a Java library, it is interesting to compare it against the Java native serialization API. It is interesting to compare also against the well-known and widely used JSON serialization format.
+As a Java library, it is interesting to compare it against the Java native serialization API. It is interesting to compare also against the well-known and widely used JSON format.
 
-## Data Set
+## Differences with Java native serialization API
+TBD
+
+## Differences with JSON
+TBD
+
+## Output Size
+
+### Data Set
 As an example, we serialize a list of fictitious employees.
 
 | First Name | Last Name | Age | Male  | Height |
@@ -173,7 +196,7 @@ And finally, a list of skills, implemented as a `Collection`.
 | Management      |
 | Human Resources |
 
-## Output Size
+### Results 
 You can find in the following list the amount of data required to store the serialized stream in each format.
 
 | Format      | Size        | Diff to WhiteShark |
@@ -183,10 +206,15 @@ You can find in the following list the amount of data required to store the seri
 | JSON        | 1,446 bytes | +24.12%            |			
 
 ## Performance
-Soon
 
-# Format specifications
-Soon
+### Test Protocol
+TBD
+
+### Results
+TBD
+
+# Format Specifications
+See [FORMAT_SPECS.md](FORMAT_SPECS.md)
 
 # License
 See [LICENSE.md](LICENSE.md)
