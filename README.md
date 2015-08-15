@@ -1,5 +1,5 @@
 # WhiteShark
-WhiteShark is a binary serialization format with a very little overhead and a smaller footprint than JSON or Java native serialization format.
+WhiteShark is a binary serialization format with a much smaller footprint than JSON or Java native serialization format, at the cost of a little overhead in processing time.
 
 # Supported Languages
 As a serialization format, WhiteShark can be used with any programming language.
@@ -160,7 +160,8 @@ TBD
 ## Output Size
 
 ### Data Set
-As an example, we serialize a list of fictitious employees.
+As an example, we serialize a list of fictitious employees, thanks to a `Team` class extending `Vector<Employee>`.
+This class includes an array of 12 integers, containing the number of days for each month of a year.
 
 | First Name | Last Name | Age | Male  | Height |
 |------------|-----------|-----|-------|--------|
@@ -196,22 +197,49 @@ And finally, a list of skills, implemented as a `Collection`.
 | Management      |
 | Human Resources |
 
+Additionnally, we use external class mapping to map `com.xhaleera.whiteshark.tests.Employee` with `Xhaleera::WhiteShark::Test::Employee`.
+
 ### Results 
 You can find in the following list the amount of data required to store the serialized stream in each format.
 
 | Format      | Size        | Diff to WhiteShark |
 |-------------|-------------|--------------------|
-| WhiteShark  | 1,165 bytes | -                  |
-| Java native | 1,674 bytes | +43.69%            |
-| JSON        | 1,446 bytes | +24.12%            |			
+| WhiteShark  | 1,242 bytes | -                  |
+| Java native | 1,762 bytes | +41.87%            |
+| JSON        | 1,505 bytes | +21.18%            |
 
 ## Performance
 
 ### Test Protocol
-TBD
+Using the same data set, we proceed in sequence to 10,000 runs of:
+* WhiteShark serialization,
+* Java native serialization,
+* JSON data construction and serialization,
+* WhiteShark immediate deserialization,
+* WhiteShark progressive deserialization,
+* Java native deserialization,
+* JSON deserialization
+
+*Serializations and deserializations are done to and from memory buffer only.*
+
+Each process is run 10 times, and we keep the minimal, maximal and average timing as a performance indicator.
+
+This test protocol is run on a MacBook Pro mi-2009 (2,53 GHz Intel Core 2 Duo, 8 Go 1067 MHz DDR3) running OS X 10.10.4 and Java 8 SE Update 51.
 
 ### Results
-TBD
+Values represent a single serialization or deserialization run and are expressed in milliseconds.
+
+| Process                                | Minimal | Maximal | Average |
+|----------------------------------------|--------+|--------+|--------+|
+| WhiteShark serialization               | 0.669   | 0.6876  | 0.67844 |
+| Java native serizalization             | 0.0822  | 0.1763  | 0.1134  |
+| JSON serialization                     | 0.0924  | 0.1286  | 0.10982 |
+| WhiteShark immediate deserialization   | 0.6447  | 0.7331  | 0.68897 |
+| WhiteShark progressive deserialization | 0.7074  | 0.7367  | 0.72194 |
+| Java native deserialization            | 0.1356  | 0.2265  | 0.17968 |
+| JSON deserialization                   | 0.1904  | 0.1327  | 0.1148  |
+
+At this time, WhiteShark Java implementation is about 7 times slower than the other options. Optimizations are planned to reduce that gap.
 
 # Format Specifications
 See [FORMAT_SPECS.md](FORMAT_SPECS.md)

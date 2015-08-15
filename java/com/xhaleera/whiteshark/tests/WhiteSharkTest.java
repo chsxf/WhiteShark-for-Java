@@ -10,8 +10,10 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.xhaleera.whiteshark.WhiteSharkConstants;
+import com.xhaleera.whiteshark.WhiteSharkExternalClassMapper;
 import com.xhaleera.whiteshark.WhiteSharkGenericObject;
 import com.xhaleera.whiteshark.WhiteSharkImmediateDeserializer;
 import com.xhaleera.whiteshark.WhiteSharkProgressiveDeserializer;
@@ -24,6 +26,9 @@ public class WhiteSharkTest {
 
 	public static void main(String[] args) {
 		try {
+			WhiteSharkExternalClassMapper classMapper = new WhiteSharkExternalClassMapper();
+			classMapper.mapClass(Employee.class, "Xhaleera::WhiteShark::Tests::Employee");
+			
 			Team data = Employee.buildTestData();
 			dump(data);
 			
@@ -33,7 +38,7 @@ public class WhiteSharkTest {
 			// Serializing
 			System.out.println("Serializing...");
 			FileOutputStream fileStream = new FileOutputStream(new File(path));
-			WhiteSharkSerializer.serialize(streamId, fileStream, data);
+			WhiteSharkSerializer.serialize(streamId, fileStream, data, classMapper);
 			fileStream.close();
 			System.out.println("");
 			
@@ -48,17 +53,23 @@ public class WhiteSharkTest {
 			// Serializing (JSON serialization)
 			System.out.println("Serializing (JSON)...");
 			fileStream = new FileOutputStream(new File("/Users/christophe/Desktop/Test-json.bin"));
+			JSONObject json = new JSONObject();
 			JSONArray arr = new JSONArray();
+			for (int md : data.monthDays)
+				arr.put(md);
+			json.put("monthDays", arr);
+			arr = new JSONArray();
 			for (Employee e : data)
 				arr.put(e.toJSON());
-			fileStream.write(arr.toString().getBytes("UTF-8"));
+			json.put(WhiteSharkConstants.COLLECTION_ITEM_PROPERTY_NAME, arr);
+			fileStream.write(json.toString().getBytes("UTF-8"));
 			fileStream.close();
 			System.out.println("");
 			
 			// Deserializing (immediate)
 			System.out.println("Deserializing (immediate) ...");
 			FileInputStream inStream = new FileInputStream(new File(path));
-			Object o = WhiteSharkImmediateDeserializer.deserialize(streamId, inStream);
+			Object o = WhiteSharkImmediateDeserializer.deserialize(streamId, inStream, classMapper);
 			dump(o);
 			inStream.close();
 			System.out.println("");
@@ -67,7 +78,7 @@ public class WhiteSharkTest {
 			WhiteSharkProgressiveDeserializer.DeserializationResult result = null;
 			System.out.println("Deserializing (progressive) ...");
 			inStream = new FileInputStream(new File(path));
-			WhiteSharkProgressiveDeserializer deserializer = new WhiteSharkProgressiveDeserializer(streamId);
+			WhiteSharkProgressiveDeserializer deserializer = new WhiteSharkProgressiveDeserializer(streamId, classMapper);
 			byte[] b = new byte[2];
 			int c;
 			while (inStream.available() > b.length) {
