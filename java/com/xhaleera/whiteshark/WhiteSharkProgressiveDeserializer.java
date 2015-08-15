@@ -24,7 +24,7 @@ import com.xhaleera.whiteshark.exceptions.WhiteSharkUnsupportedVersionException;
  * This class is used to deserialize unbuffered WhiteShark streams in several successive steps.
  * To deserialize complete (buffered) streams, prefer using WhiteSharkImmediateDeserializer.
  * 
- * @author Christophe SAUVEUR <christophe@xhaleera.com>
+ * @author Christophe SAUVEUR (christophe@xhaleera.com)
  * @since 1.0
  * @version 1.0
  */
@@ -33,7 +33,7 @@ public final class WhiteSharkProgressiveDeserializer {
 	/**
 	 * Deserialization result information class
 	 * 
-	 * @author Christophe SAUVEUR <christophe@xhaleera.com>
+	 * @author Christophe SAUVEUR (christophe@xhaleera.com)
 	 * @since 1.0
 	 * @version 1.0
 	 */
@@ -85,7 +85,6 @@ public final class WhiteSharkProgressiveDeserializer {
 		 * <p>
 		 * Generates incomplete deserialization results.
 		 * 
-		 * @param result The deserialized property value
 		 * @param propertyName The property name
 		 */
 		public DeserializationResult(String propertyName) {
@@ -139,7 +138,7 @@ public final class WhiteSharkProgressiveDeserializer {
 	/**
 	 * Deserialization level container
 	 * 
-	 * @author Christophe SAUVEUR <christophe@xhaleera.com>
+	 * @author Christophe SAUVEUR (christophe@xhaleera.com)
 	 * @since 1.0
 	 * @version 1.0
 	 */

@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 /**
  * Utility class
  * 
- * @author Christophe SAUVEUR <christophe@xhaleera.com>
+ * @author Christophe SAUVEUR (christophe@xhaleera.com)
  * @since 1.0
  * @version 1.0
  */

@@ -3,7 +3,7 @@ package com.xhaleera.whiteshark.exceptions;
 /**
  * Exception thrown when the custom stream identifier does not match the one that is excepted.
  * 
- * @author Christophe SAUVEUR <christophe@xhaleera.com>
+ * @author Christophe SAUVEUR (christophe@xhaleera.com)
  * @since 1.0
  * @version 1.0
  */

@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
 /**
  * Annotation identifying types serialized as generics
  * 
- * @author Christophe SAUVEUR <christophe@xhaleera.com>
+ * @author Christophe SAUVEUR (christophe@xhaleera.com)
  * @since 1.0
  * @version 1.0
  */

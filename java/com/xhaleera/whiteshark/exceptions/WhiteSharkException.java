@@ -3,7 +3,7 @@ package com.xhaleera.whiteshark.exceptions;
 /**
  * Base class for WhiteShark exceptions
  * 
- * @author Christophe SAUVEUR <christophe@xhaleera.com>
+ * @author Christophe SAUVEUR (christophe@xhaleera.com)
  * @since 1.0
  * @version 1.0
  */
