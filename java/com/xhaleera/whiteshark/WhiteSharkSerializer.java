@@ -6,6 +6,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
@@ -32,6 +33,9 @@ public class WhiteSharkSerializer {
 	private static Vector<Class<?>> classDictionary = new Vector<>();
 	/** Properties dictionary */
 	private static Vector<String> propertyDictionary = new Vector<>();
+	
+	/** Reflection fields container */
+	private static HashMap<Class<?>, Vector<Field>> fieldsContainer = new HashMap<>(); 
 	
 	/**
 	 * Serializes an object using WhiteShark serialization format
@@ -391,14 +395,19 @@ public class WhiteSharkSerializer {
 		}
 		
 		// Locating fields
-		Field[] fields = c.getFields();
 		Vector<Field> serializableFields = null;
-		for (Field f : fields) {
-			if (f.getAnnotation(WhiteSharkSerializable.class) != null) {
-				if (serializableFields == null)
-					serializableFields = new Vector<Field>();
-				serializableFields.add(f);
+		if (fieldsContainer.containsKey(c))
+			serializableFields = fieldsContainer.get(c);
+		else {
+			Field[] fields = c.getFields();
+			for (Field f : fields) {
+				if (f.getAnnotation(WhiteSharkSerializable.class) != null) {
+					if (serializableFields == null)
+						serializableFields = new Vector<Field>();
+					serializableFields.add(f);
+				}
 			}
+			fieldsContainer.put(c, serializableFields);
 		}
 		int fieldCount = (serializableFields == null) ? 0 : serializableFields.size();
 		// -- Serializable map?
