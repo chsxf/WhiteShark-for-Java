@@ -5,6 +5,10 @@ WhiteShark is a binary serialization format with a much smaller footprint than J
 As a serialization format, WhiteShark can be used with any programming language.
 However, at this time, this repository only provides a Java library.
 
+# Requirements
+WhiteShark Java implementation requires Java 7 SE or later.
+Optional `tests` package requires `org.java` package you can find at https://github.com/douglascrockford/JSON-java
+
 # Usage
 We do not provide a JAR file yet for the library, so you have to import the `com.xhaleera.whiteshark` package into your project.
 
@@ -224,13 +228,13 @@ Using the same data set, we proceed in sequence to 10,000 runs of:
 
 Each process is run 10 times, and we keep the minimal, maximal and average timing as a performance indicator.
 
-This test protocol is run on a MacBook Pro mi-2009 (2,53 GHz Intel Core 2 Duo, 8 Go 1067 MHz DDR3) running OS X 10.10.4 and Java 8 SE Update 51.
+This test protocol has been run on August 15th, 2015 on a MacBook Pro mi-2009 (2,53 GHz Intel Core 2 Duo, 8 Go 1067 MHz DDR3) running OS X 10.10.4 and Java 8 SE Update 51.
 
 ### Results
 Values represent a single serialization or deserialization run and are expressed in milliseconds.
 
 | Process                                | Minimal | Maximal | Average |
-|----------------------------------------|--------+|--------+|--------+|
+|----------------------------------------|---------|---------|---------|
 | WhiteShark serialization               | 0.669   | 0.6876  | 0.67844 |
 | Java native serizalization             | 0.0822  | 0.1763  | 0.1134  |
 | JSON serialization                     | 0.0924  | 0.1286  | 0.10982 |
