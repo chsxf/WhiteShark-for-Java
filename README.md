@@ -234,7 +234,7 @@ This test protocol has been run on August 15th, 2015 on a MacBook Pro mi-2009 (2
 Values represent a single serialization or deserialization run and are expressed in milliseconds.
 
 | Process                                | Minimal | Maximal | Average |
-|----------------------------------------|---------|---------|---------|
+|----------------------------------------|--------:|--------:|--------:|
 | WhiteShark serialization               | 0.669   | 0.6876  | 0.67844 |
 | Java native serizalization             | 0.0822  | 0.1763  | 0.1134  |
 | JSON serialization                     | 0.0924  | 0.1286  | 0.10982 |
