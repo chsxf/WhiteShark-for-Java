@@ -228,9 +228,9 @@ Using the same data set, we proceed in sequence to 10,000 runs of:
 
 Each process is run 10 times, and we keep the minimal, maximal and average timing as a performance indicator.
 
+### Results
 This test protocol has been run on August 15th, 2015 on a MacBook Pro mi-2009 (2,53 GHz Intel Core 2 Duo, 8 Go 1067 MHz DDR3) running OS X 10.10.4 and Java 8 SE Update 51.
 
-### Results
 Values represent a single serialization or deserialization run and are expressed in milliseconds.
 
 | Process                                | Minimal | Maximal | Average |
