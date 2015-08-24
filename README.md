@@ -112,7 +112,7 @@ WhiteShark provides a way to automate external class mapping using the `WhiteSha
 
 ```java
 	WhiteSharkExternalClassMapper mapper = new WhiteSharkExternalClassMapper();
-	mapper.mapClass(MyJavaClass.class, "Xhaleera::MyPHPClass");
+	mapper.mapClass(MyJavaClass.class, "\Xhaleera\MyPHPClass");
 	WhiteSharkSerializer.serialize("STID", inputStream, objectToSerialize, mapper);
 ```
 
