@@ -106,7 +106,7 @@ fileStream.close();
 ### External class mapping
 Serialization is used to store objects permanently, in a database for example. Thus, serialization and deserialization is generally done using the same code base.
 
-However, in most cases, serialized data are used over a network to achieve data formatting in an efficient way. Then, serialization and deserialization will probably occur on different code bases. For an example, a Java multiuser server communicating with a Unity C# client. Different languages imply different class name specifications (PHP packages are separated with `::`, but Java package separator is `.`).
+However, in most cases, serialized data are used over a network to achieve data formatting in an efficient way. Then, serialization and deserialization will probably occur on different code bases. For an example, a Java multiuser server communicating with a Unity C# client. Different languages imply different class name specifications (PHP packages are separated with `\`, but Java package separator is `.`).
 
 WhiteShark provides a way to automate external class mapping using the `WhiteSharkExternalClassMapper` class. You can pass an properly configured instance to specific variants of `serialize()` and `deserialize()` methods and of the `WhiteSharkProgressiveDeserializer` constructor.
 
