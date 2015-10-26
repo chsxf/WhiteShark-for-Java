@@ -5,9 +5,11 @@ WhiteShark is a binary serialization format with a much smaller footprint than J
 As a serialization format, WhiteShark can be used with any programming language.
 However, at this time, this repository only provides a Java library.
 
+Implementations in other languages will be provided later (PHP, C#, Objective-C and C++ are planned).
+
 # Requirements
 WhiteShark Java implementation requires Java 7 SE or later.
-Optional `tests` package requires `org.java` package you can find at https://github.com/douglascrockford/JSON-java
+Optional `tests` package requires `org.json` package you can find at https://github.com/douglascrockford/JSON-java
 
 # Usage
 We do not provide a JAR file yet for the library, so you have to import the `com.xhaleera.whiteshark` package into your project.
@@ -28,7 +30,7 @@ class MySerializableClass {
 }
 ```
 
-### Serialization of native Java `Map` and `Collection` interfaces
+### Serialization of Native Java `Map` and `Collection` Interfaces
 `Map` and `Collection` instances are considered as common objects by WhiteShark. This means only their fields annotated with `@WhiteSharkSerializable` will be serialized by default.
 
 In the following example, the `serializedMapInstance` field will be serialized, but not its content.
@@ -103,7 +105,7 @@ fileStream.close();
 
 *Disabling class mapping, i.e. serializing objects as generics, can also be achieved on a class-by-class basis thanks to the `@WhiteSharkAsGenerics` class annotation.*
 
-### External class mapping
+### External Class Mapping
 Serialization is used to store objects permanently, in a database for example. Thus, serialization and deserialization is generally done using the same code base.
 
 However, in most cases, serialized data are used over a network to achieve data formatting in an efficient way. Then, serialization and deserialization will probably occur on different code bases. For an example, a Java multiuser server communicating with a Unity C# client. Different languages imply different class name specifications (PHP packages are separated with `\`, but Java package separator is `.`).
@@ -153,13 +155,19 @@ inStream.close();
 ```
 
 # Comparison with Other Serialization Formats
-As a Java library, it is interesting to compare it against the Java native serialization API. It is interesting to compare also against the well-known and widely used JSON format.
+As a Java library, it is interesting to compare it against the Java built-in serialization API. It is interesting to compare also against the well-known and widely used JSON format.
 
-## Differences with Java native serialization API
-TBD
+## Differences with Java Built-in Serialization API
+Both APIs provides serialization and deserialization of generic, primitive and custom types, including type mapping. However, WhiteShark is only able to serialize / deserialize publicly available properties when the Java built-in serialization API is capable of serializing whole objects.
+
+Furthermore, WhiteShark has an opt-in philosophy and serializes only properties and types you have explicitly elected for serialization, when Java built-in serialization API works on an opt-out basis thanks to transient fields.
 
 ## Differences with JSON
-TBD
+WhiteShark and JSON share the same philosophy but has very different approaches.
+
+WhiteShark serializes types and classes based on their native definition, when JSON serializes data based on input provided by the developer. Furthermore, JSON language syntax does not natively include type and class mapping, leaving the responsability to instantiante approriate types and classes during deserialization to the developer.
+
+In that, WhiteShark is faster to implement.
 
 ## Output Size
 
@@ -206,44 +214,48 @@ Additionnally, we use external class mapping to map `com.xhaleera.whiteshark.tes
 ### Results 
 You can find in the following list the amount of data required to store the serialized stream in each format.
 
-| Format      | Size        | Diff to WhiteShark |
-|-------------|-------------|--------------------|
-| WhiteShark  | 1,242 bytes | -                  |
-| Java native | 1,762 bytes | +41.87%            |
-| JSON        | 1,505 bytes | +21.18%            |
+| Format        | Size        | Diff to WhiteShark |
+|---------------|-------------|--------------------|
+| WhiteShark    | 1,242 bytes | -                  |
+| Java built-in | 1,762 bytes | +41.87%            |
+| JSON          | 1,505 bytes | +21.18%            |
 
 ## Performance
 
 ### Test Protocol
 Using the same data set, we proceed in sequence to 10,000 runs of:
 * WhiteShark serialization,
-* Java native serialization,
+* Java built-in serialization,
 * JSON data construction and serialization,
 * WhiteShark immediate deserialization,
 * WhiteShark progressive deserialization,
-* Java native deserialization,
+* Java built-in deserialization,
 * JSON deserialization
 
-*Serializations and deserializations are done to and from memory buffer only.*
+*Serializations and deserializations are done to and from memory buffers only.*
 
 Each process is run 10 times, and we keep the minimal, maximal and average timing as a performance indicator.
 
 ### Results
-This test protocol has been run on August 15th, 2015 on a MacBook Pro mi-2009 (2,53 GHz Intel Core 2 Duo, 8 Go 1067 MHz DDR3) running OS X 10.10.4 and Java 8 SE Update 51.
+This test protocol has been run on October 26th, 2015 on a MacBook Pro mi-2009 (2,53 GHz Intel Core 2 Duo, 8 Go 1067 MHz DDR3) running OS X 10.11.1 and Java 8 SE Update 51.
 
 Values represent a single serialization or deserialization run and are expressed in milliseconds.
 
 | Process                                | Minimal | Maximal | Average |
 |----------------------------------------|--------:|--------:|--------:|
-| WhiteShark serialization               | 0.669   | 0.6876  | 0.67844 |
-| Java native serizalization             | 0.0822  | 0.1763  | 0.1134  |
-| JSON serialization                     | 0.0924  | 0.1286  | 0.10982 |
-| WhiteShark immediate deserialization   | 0.6447  | 0.7331  | 0.68897 |
-| WhiteShark progressive deserialization | 0.7074  | 0.7367  | 0.72194 |
-| Java native deserialization            | 0.1356  | 0.2265  | 0.17968 |
-| JSON deserialization                   | 0.1904  | 0.1327  | 0.1148  |
+| WhiteShark serialization               | 0.1922  | 0.2219  | 0.21038 |
+| Java built-in serizalization             | 0.0874  | 0.1604  | 0.12597 |
+| JSON serialization                     | 0.0945  | 0.147   | 0.11596 |
+| WhiteShark immediate deserialization   | 0.1416  | 0.2859  | 0.25071 |
+| WhiteShark progressive deserialization | 0.5124  | 0.7714  | 0.58699 |
+| Java built-in deserialization            | 0.1724  | 0.2083  | 0.19734 |
+| JSON deserialization                   | 0.1042  | 0.1456  | 0.12283 |
 
-At this time, WhiteShark Java implementation is about 7 times slower than the other options. Optimizations are planned to reduce that gap.
+At this time, WhiteShark Java implementation is about twice slower than the other options while serializing or deserializing thanks to the immediate method. Progressive deserialization is twice slower than the immediate method and three to five times slower than the other options.
+
+Optimizations are planned to reduce that gap.
+
+See [ARCHIVED_RESULTS.md](ARCHIVED_RESULTS.md) to compare evolution over time.
 
 # Format Specifications
 See [FORMAT_SPECS.md](FORMAT_SPECS.md)
