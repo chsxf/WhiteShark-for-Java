@@ -33,7 +33,7 @@ public class WhiteSharkTest {
 			dump(data);
 			
 			String streamId = "TEST";
-			String path = "/Users/christophe/Desktop/Test.bin";
+			String path = "./Test.bin";
 			
 			// Serializing
 			System.out.println("Serializing...");
@@ -44,7 +44,7 @@ public class WhiteSharkTest {
 			
 			// Serializing (Java native serialization)
 			System.out.println("Serializing (Java native)...");
-			fileStream = new FileOutputStream(new File("/Users/christophe/Desktop/Test-java.bin"));
+			fileStream = new FileOutputStream(new File("./Test-java.bin"));
 			ObjectOutputStream oos = new ObjectOutputStream(fileStream);
 			oos.writeObject(data);
 			fileStream.close();
@@ -52,7 +52,7 @@ public class WhiteSharkTest {
 			
 			// Serializing (JSON serialization)
 			System.out.println("Serializing (JSON)...");
-			fileStream = new FileOutputStream(new File("/Users/christophe/Desktop/Test-json.bin"));
+			fileStream = new FileOutputStream(new File("./Test-json.bin"));
 			JSONObject json = new JSONObject();
 			JSONArray arr = new JSONArray();
 			for (int md : data.monthDays)
