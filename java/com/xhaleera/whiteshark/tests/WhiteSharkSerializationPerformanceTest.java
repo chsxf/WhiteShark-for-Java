@@ -19,7 +19,7 @@ public class WhiteSharkSerializationPerformanceTest {
 			
 			String streamId = "TEST";
 			
-			ByteArrayOutputStream oStream; 
+			ByteArrayOutputStream oStream;
 			
 			// Serializing
 			long start = System.currentTimeMillis();

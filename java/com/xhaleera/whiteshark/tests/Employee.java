@@ -12,8 +12,10 @@ import com.xhaleera.whiteshark.WhiteSharkConstants;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializable;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableCollection;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableMap;
+import com.xhaleera.whiteshark.annotations.WhiteSharkSerializationVersion;
 
 @WhiteSharkSerializableMap
+@WhiteSharkSerializationVersion(1)
 public class Employee extends HashMap<String,Integer> implements Serializable {
 
 	static final long serialVersionUID = 1;

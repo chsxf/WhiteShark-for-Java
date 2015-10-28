@@ -2,6 +2,8 @@ package com.xhaleera.whiteshark;
 
 import java.nio.ByteBuffer;
 
+import com.xhaleera.whiteshark.annotations.WhiteSharkSerializationVersion;
+
 /**
  * Utility class
  * 
@@ -98,6 +100,20 @@ final class WhiteSharkUtils {
 	 */
 	public static boolean hasOption(short options, short option) {
 		return ((options & option) != 0);
+	}
+	
+	/**
+	 * Gets the serialization version of a class from its {@link WhiteSharkSerializationVersion} annotation.
+	 * 
+	 * @param cls Source class 
+	 * @return the annotated serialization version of the class, or {@link WhiteSharkConstants#DEFAULT_SERIALIZATION_VERSION} if no version is provided.
+	 */
+	public static int getSerializationVersion(Class<?> cls) {
+		WhiteSharkSerializationVersion serializationVersionAnnotation = cls.getAnnotation(WhiteSharkSerializationVersion.class);
+		if (serializationVersionAnnotation != null)
+			return serializationVersionAnnotation.value();
+		else
+			return WhiteSharkConstants.DEFAULT_SERIALIZATION_VERSION;
 	}
 	
 }

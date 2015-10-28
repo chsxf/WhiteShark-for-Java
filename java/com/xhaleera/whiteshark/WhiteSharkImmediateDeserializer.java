@@ -15,6 +15,7 @@ import com.xhaleera.whiteshark.annotations.WhiteSharkSerializable;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableCollection;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableMap;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkException;
+import com.xhaleera.whiteshark.exceptions.WhiteSharkIncompatibleSerializationVersionException;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkMismatchingIdentifierException;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkMissingFormatIdentifierException;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkNotAPropertyException;
@@ -127,7 +128,7 @@ public class WhiteSharkImmediateDeserializer {
 	 * @throws NoSuchFieldException
 	 * @throws IOException
 	 */
-	private static Object deserialize(InputStream stream, short options, boolean serializableMap, boolean serializableCollection) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkNotAPropertyException, NoSuchFieldException, IOException {
+	private static Object deserialize(InputStream stream, short options, boolean serializableMap, boolean serializableCollection) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkNotAPropertyException, WhiteSharkIncompatibleSerializationVersionException, NoSuchFieldException, IOException {
 		byte mask = (byte) stream.read();
 		byte dataType = (byte) (mask & 0xf);
 		
@@ -308,7 +309,7 @@ public class WhiteSharkImmediateDeserializer {
 	 * @throws WhiteSharkNotAPropertyException
 	 * @throws NoSuchFieldException
 	 */
-	private static Object deserializeArray(InputStream stream, byte mask, short options) throws IOException, ClassNotFoundException, ArrayIndexOutOfBoundsException, IllegalArgumentException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, InvocationTargetException, WhiteSharkNotAPropertyException, NoSuchFieldException {
+	private static Object deserializeArray(InputStream stream, byte mask, short options) throws IOException, ClassNotFoundException, ArrayIndexOutOfBoundsException, IllegalArgumentException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, InvocationTargetException, WhiteSharkNotAPropertyException, WhiteSharkIncompatibleSerializationVersionException, NoSuchFieldException {
 		byte[] b, classNameBytes = null;
 		ByteBuffer buf;
 		
@@ -381,13 +382,14 @@ public class WhiteSharkImmediateDeserializer {
 	 * @throws WhiteSharkNotAPropertyException
 	 * @throws NoSuchFieldException
 	 */
-	private static Object deserializeObject(InputStream stream, byte mask, short options, boolean serializableMap, boolean serializableCollection) throws IOException, ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkNotAPropertyException, NoSuchFieldException {
+	private static Object deserializeObject(InputStream stream, byte mask, short options, boolean serializableMap, boolean serializableCollection) throws IOException, ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkNotAPropertyException, WhiteSharkIncompatibleSerializationVersionException, NoSuchFieldException {
 		byte[] b, classNameBytes = null;
 		ByteBuffer buf;
 		boolean serializedAsGenerics = WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS) || ((mask & 0x80) != 0);
 		boolean classInDictionary = ((mask & 0x40) != 0);
 		int classDictionaryIndex = -1;
 		
+		int serializationVersionFromStream = 0;
 		if (!serializedAsGenerics) {
 			b = new byte[2];
 			stream.read(b);
@@ -397,6 +399,11 @@ public class WhiteSharkImmediateDeserializer {
 				b = new byte[classNameLength];
 				stream.read(b);
 				classNameBytes = b;
+				
+				b = new byte[4];
+				stream.read(b);
+				buf = WhiteSharkUtils.wrapWithByteBuffer(b);
+				serializationVersionFromStream = buf.getInt();
 			}
 			else
 				classDictionaryIndex = buf.getShort();
@@ -429,6 +436,11 @@ public class WhiteSharkImmediateDeserializer {
 			if (!classInDictionary) {
 				String className = new String(classNameBytes, "US-ASCII");
 				c = classMapper.getClassFromExternal(className);
+				
+				int serializationVersionFromCode = WhiteSharkUtils.getSerializationVersion(c);
+				if (serializationVersionFromCode < serializationVersionFromStream)
+					throw new WhiteSharkIncompatibleSerializationVersionException(String.format("Incompatible serialization versions found (runtime: %d, data stream: %d)", serializationVersionFromCode, serializationVersionFromStream));
+				
 				classDictionary.add(c);
 			}
 			else
@@ -461,7 +473,7 @@ public class WhiteSharkImmediateDeserializer {
 	 * @throws InstantiationException
 	 * @throws InvocationTargetException
 	 */
-	private static void deserializeProperty(InputStream stream, Object parentObj, boolean parentObjectAsGenerics, boolean parentObjectIsSerializableMap, boolean parentObjectIsSerializableCollection, short options) throws IOException, WhiteSharkNotAPropertyException, IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException, ClassNotFoundException, NoSuchMethodException, InstantiationException, InvocationTargetException {
+	private static void deserializeProperty(InputStream stream, Object parentObj, boolean parentObjectAsGenerics, boolean parentObjectIsSerializableMap, boolean parentObjectIsSerializableCollection, short options) throws IOException, WhiteSharkNotAPropertyException, WhiteSharkIncompatibleSerializationVersionException, IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException, ClassNotFoundException, NoSuchMethodException, InstantiationException, InvocationTargetException {
 		byte mask = (byte) stream.read();
 		byte dataType = (byte) (mask & 0xf);
 		byte[] b;

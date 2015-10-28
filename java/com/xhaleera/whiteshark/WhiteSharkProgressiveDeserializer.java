@@ -15,6 +15,7 @@ import java.util.Vector;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableCollection;
 import com.xhaleera.whiteshark.annotations.WhiteSharkSerializableMap;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkException;
+import com.xhaleera.whiteshark.exceptions.WhiteSharkIncompatibleSerializationVersionException;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkMissingFormatIdentifierException;
 import com.xhaleera.whiteshark.exceptions.WhiteSharkUnsupportedVersionException;
 
@@ -431,21 +432,23 @@ public final class WhiteSharkProgressiveDeserializer {
 			
 			// Object
 			else {
+				if (baos.size() < offset + 3)
+					return false;
 				boolean serializedAsGenerics = (dataType == WhiteSharkDataType.OBJECT.getMask()
 						&& (WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS) || ((mask & 0x80) != 0)));
 				boolean classInDictionary = ((mask & 0x40) != 0);
 				int lengthByteCount = (mask & 0x30) >> 4;
-				if (baos.size() < offset + 3)
-					return false;
-				int classNameLength;
+				if (lengthByteCount == 3)
+					lengthByteCount = 4;
+				int classNameAndVersionLength;
 				if (serializedAsGenerics)
-					classNameLength = 0;
+					classNameAndVersionLength = 0;
 				else {
-					classNameLength = 2;
+					classNameAndVersionLength = 2;
 					if (!classInDictionary)
-						classNameLength += buf.getShort(offset + 1);
+						classNameAndVersionLength += buf.getShort(offset + 1) + 4;
 				}
-				return (baos.size() >= offset + 1 + classNameLength + lengthByteCount);
+				return (baos.size() >= offset + 1 + classNameAndVersionLength + lengthByteCount);
 			}
 		}
 	}
@@ -462,7 +465,7 @@ public final class WhiteSharkProgressiveDeserializer {
 	 * @throws IllegalArgumentException
 	 * @throws InvocationTargetException
 	 */
-	private DeserializationResult deserializeNext() throws UnsupportedEncodingException, ClassNotFoundException, NoSuchFieldException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+	private DeserializationResult deserializeNext() throws UnsupportedEncodingException, ClassNotFoundException, NoSuchFieldException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkIncompatibleSerializationVersionException {
 		byte[] bytes = baos.toByteArray();
 		byte mask = bytes[0];
 		byte dataType = (byte) (mask & 0xf);
@@ -753,12 +756,13 @@ public final class WhiteSharkProgressiveDeserializer {
 	 * @throws IllegalArgumentException
 	 * @throws InvocationTargetException
 	 */
-	private DeserializationResult deserializeObject(boolean isRoot, byte mask) throws UnsupportedEncodingException, ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+	private DeserializationResult deserializeObject(boolean isRoot, byte mask) throws UnsupportedEncodingException, ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, WhiteSharkIncompatibleSerializationVersionException {
 		ByteBuffer buf = WhiteSharkUtils.wrapWithByteBuffer(baos.toByteArray());
 		boolean serializedAsGenerics = WhiteSharkUtils.hasOption(options, WhiteSharkConstants.OPTIONS_OBJECTS_AS_GENERICS) || ((mask & 0x80) != 0);
 		boolean classInDictionary = ((mask & 0x40) != 0);
 		int classDictionaryIndex = -1;
 		
+		int serializationVersionFromStream = 0;
 		int classNameLength = 0;
 		byte[] classNameBytes = null;
 		if (!serializedAsGenerics) {
@@ -766,6 +770,8 @@ public final class WhiteSharkProgressiveDeserializer {
 				classNameLength = buf.getShort();
 				classNameBytes = new byte[classNameLength];
 				buf.get(classNameBytes);
+				
+				serializationVersionFromStream = buf.getInt();
 			}
 			else
 				classDictionaryIndex = buf.getShort();
@@ -790,9 +796,14 @@ public final class WhiteSharkProgressiveDeserializer {
 		else {
 			Class<?> c;
 			if (!classInDictionary) {
-				removeFirstBytesFromStream(2 + classNameLength + fieldCountByteCount);
+				removeFirstBytesFromStream(2 + classNameLength + 4 + fieldCountByteCount);
 				String className = new String(classNameBytes, "US-ASCII");
 				c = classMapper.getClassFromExternal(className);
+				
+				int serializationVersionFromCode = WhiteSharkUtils.getSerializationVersion(c);
+				if (serializationVersionFromCode < serializationVersionFromStream)
+					throw new WhiteSharkIncompatibleSerializationVersionException(String.format("Incompatible serialization versions found (runtime: %d, data stream: %d)", serializationVersionFromCode, serializationVersionFromStream));
+				
 				classDictionary.add(c);
 			}
 			else {

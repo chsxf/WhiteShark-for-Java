@@ -385,10 +385,12 @@ public class WhiteSharkSerializer {
 		boolean classInDictionary = classDictionary.contains(c);
 		int classDictionaryIndex = -1;
 		
+		int serializationVersion = 0;
 		if (!serializesAsGenerics) {
 			if (!classInDictionary) {
 				classDictionary.add(c);
 				classCanonicalNameBytes = classMapper.getExternalFromClass(c).getBytes("US-ASCII");
+				serializationVersion = WhiteSharkUtils.getSerializationVersion(c);
 			}
 			else
 				classDictionaryIndex = classDictionary.indexOf(c);
@@ -439,7 +441,7 @@ public class WhiteSharkSerializer {
 		if (!serializesAsGenerics) {
 			byteBufferLength += 2;
 			if (!classInDictionary)
-				byteBufferLength += classCanonicalNameBytes.length;
+				byteBufferLength += classCanonicalNameBytes.length + 4;
 		}
 		ByteBuffer buf = WhiteSharkUtils.allocateByteBuffer(byteBufferLength);
 		buf.put(mask);
@@ -449,6 +451,7 @@ public class WhiteSharkSerializer {
 			else {
 				buf.putShort((short) classCanonicalNameBytes.length);
 				buf.put(classCanonicalNameBytes);
+				buf.putInt(serializationVersion);
 			}
 		}
 		switch (fieldCountByteCount) {

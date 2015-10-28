@@ -20,13 +20,16 @@ public final class WhiteSharkConstants {
 	
 	/** Format version */
 	public static final short VERSION = 1;
-
+	
 	/** Format byte order */
 	public static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 	
 	/** Map property name */
 	public static final String MAP_PROPERTY_NAME_PREFIX = ":m:";
 	public static final String COLLECTION_ITEM_PROPERTY_NAME = ":ci:";
+	
+	/** Default serialization version for objects */
+	public static final int DEFAULT_SERIALIZATION_VERSION = 1;
 	
 	// Format options
 	/** Default option set */
