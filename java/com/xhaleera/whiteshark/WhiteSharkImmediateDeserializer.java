@@ -470,7 +470,7 @@ public class WhiteSharkImmediateDeserializer {
 		if (dataType != WhiteSharkDataType.PROPERTY.getMask())
 			throw new WhiteSharkNotAPropertyException("Not a property");
 		
-		boolean propertyInDictionary = ((mask & 0x40) != 0);
+		boolean propertyInDictionary = ((mask & 0x20) != 0);
 		String fieldName;
 		if (propertyInDictionary) {
 			b = new byte[2];

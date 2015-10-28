@@ -395,7 +395,7 @@ public final class WhiteSharkProgressiveDeserializer {
 			
 			// Property
 			else if (dataType == WhiteSharkDataType.PROPERTY.getMask()) {
-				boolean propertyInDictionary = ((mask & 0x40) != 0);
+				boolean propertyInDictionary = ((mask & 0x20) != 0);
 				int size, fieldNameLengthByteCount = 0;
 				if (propertyInDictionary)
 					size = 3;
@@ -825,7 +825,7 @@ public final class WhiteSharkProgressiveDeserializer {
 	private DeserializationResult deserializeProperty(byte mask) throws UnsupportedEncodingException, ClassNotFoundException, NoSuchFieldException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		ByteBuffer buf = WhiteSharkUtils.wrapWithByteBuffer(baos.toByteArray());
 		
-		boolean propertyInDictionary = ((mask & 0x40) != 0);
+		boolean propertyInDictionary = ((mask & 0x20) != 0);
 		String fieldName;
 		
 		if (propertyInDictionary) {

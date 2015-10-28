@@ -538,7 +538,7 @@ public class WhiteSharkSerializer {
 		if (propertyInDictionary) {
 			propertyDictionaryIndex = propertyDictionary.indexOf(name);
 			bufferByteCount = 3;
-			mask |= 0x40;
+			mask |= 0x20;
 		}
 		else {
 			fieldNameBytes = name.getBytes("US-ASCII");
